@@ -1,11 +1,13 @@
-"imports"
+#imports
 import pygame
 pygame.init()
-"imports"
+#imports
 
-"screen"
+#screen
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-"screen"
+#screen
+
+#i was here
