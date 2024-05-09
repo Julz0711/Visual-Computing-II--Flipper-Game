@@ -55,7 +55,7 @@ def move_ball():
         ball_vel[1] = INITIAL_BALL_IMPULSE  # Setze den Anfangsimpuls nach unten
 
     # Schwerkraft anwenden, die die Kugel nach unten zieht
-    ball_vel[1] += GRAVITY 
+    ball_vel[1] += GRAVITY * DAMPENING
 
     # Aktualisiere die horizontale / vertikale Position der Kugel
     ball_pos[0] += ball_vel[0]
@@ -121,18 +121,22 @@ def get_line_normal(start, end):
     return (normal[0] / length, normal[1] / length)
 
 def reflect_ball(start, end):
-    # Reflektiert die Geschwindigkeit der Kugel basierend auf der Normale der Kollisionsfläche.
+    global FLIPPER_BOUNCE, DAMPENING
+
     normal = get_line_normal(start, end)
+    midpoint = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
+    ball_to_midpoint = (midpoint[0] - ball_pos[0], midpoint[1] - ball_pos[1])
+
+    if (ball_to_midpoint[0] * normal[0] + ball_to_midpoint[1] * normal[1]) > 0:
+        # Normalenvektor umkehren, wenn er zum Flipper zeigt
+        normal = (-normal[0], -normal[1])  
+
     new_velocity = reflect((ball_vel[0], ball_vel[1]), normal)
 
-    # Verstärkt die Reflexion leicht, um zu verhindern, dass die Kugel an der Fläche "kleben" bleibt
-    ball_vel[0] = new_velocity[0] + normal[0] * FLIPPER_BOUNCE
-    ball_vel[1] = new_velocity[1] + normal[1] * FLIPPER_BOUNCE
+    ball_vel[0] = (new_velocity[0] + abs(normal[0]) *- FLIPPER_BOUNCE)
+    ball_vel[1] = (new_velocity[1] + abs(normal[1]) *- FLIPPER_BOUNCE)
 
-    # # Ein kleiner Schub, um Überlappungen nach der Kollision zu vermeiden
-    escape_distance = 2
-    ball_pos[0] += normal[0] * escape_distance
-    ball_pos[1] += normal[1] * escape_distance
+
 
 def reflect(velocity, normal):
     # Reflektiert eine gegebene Geschwindigkeit an einer Fläche mit gegebenem Normalenvektor
@@ -190,72 +194,124 @@ def point_line_distance(point, start, end):
     dist = math.sqrt((px - nearest[0])**2 + (py - nearest[1])**2)
     return dist
 
+
+
+##### Flipper Logic #####
+
 def draw_flipper(position, angle, is_right):
+    # Berechnet die Start- und Endpunkte des Flippers basierend auf seiner Position, dem Winkel und der Ausrichtung.
     start_x, start_y = position
+
+    # Bestimmt die Richtung des Flippers basierend darauf, ob er rechts oder links ist.
     end_x = start_x + FLIPPER_LENGTH * math.cos(math.radians(angle)) * (-1 if is_right else 1)
     end_y = start_y - FLIPPER_LENGTH * math.sin(math.radians(angle))
+
+    # Zeichnet eine Linie, die den Flipper darstellt.
     pygame.draw.line(window, WHITE, (start_x, start_y), (end_x, end_y), FLIPPER_WIDTH)
 
 def draw_bumpers():
+    # Durchläuft alle Bumper und zeichnet sie je nach ihrem Aktivierungsstatus.
     for bumper in bumpers:
-        if bumper['active']:  # Vergrößerungsfaktor für aktive Bumper
+        # Wenn der Bumper aktiv ist, zeichne ihn vergrößert.
+        if bumper['active']:
+            # Vergrößerungsfaktor für aktive Bumper  
             scaled_radius = int(bumper['radius'] * BUMPER_SCALE)
             pygame.draw.circle(window, bumper['color'], (int(bumper['pos'][0]), int(bumper['pos'][1])), scaled_radius)
+
+            # Timer, die bestimmen, wie lange ein Bumper aktiv bleibt.
             bumper['timer'] -= 1
+
+            # Deaktiviere den Bumper, wenn der Timer abgelaufen ist.
             if bumper['timer'] <= 0:
                 bumper['active'] = False
         else:
+            # Zeichne den Bumper in normaler Größe, wenn er nicht aktiv ist.
             pygame.draw.circle(window, bumper['color'], (int(bumper['pos'][0]), int(bumper['pos'][1])), bumper['radius'])
 
+
+
+##### Event Handler ######
+
 def handle_keys():
+    # Überprüft, welche Tasten gedrückt wurden und führt entsprechende Aktionen aus.
     global left_flipper_angle, right_flipper_angle, ball_pos, ball_vel, GAME_STARTED
     keys = pygame.key.get_pressed()
+
+    # Bewegt den linken Flipper nach oben, wenn die Taste 'A' gedrückt wird.
     if keys[pygame.K_a]:
         left_flipper_angle = 30
     else:
         left_flipper_angle = 0
+
+    # Bewegt den rechten Flipper nach oben, wenn die Taste 'D' gedrückt wird.
     if keys[pygame.K_d]:
         right_flipper_angle = 30
     else:
         right_flipper_angle = 0
+
+    # Setzt das Spiel zurück, wenn die Taste 'R' gedrückt wird.
     if keys[pygame.K_r]:
         ball_pos = [WIDTH // 2, HEIGHT // 4]
         ball_vel = [0, 0]
         GAME_STARTED = False
 
 def handle_mouse():
-    global ball_pos, ball_vel, GAME_STARTED
-    if pygame.mouse.get_pressed()[0] and not GAME_STARTED:
-        if not (slider1_rect.collidepoint(pygame.mouse.get_pos()) or slider2_rect.collidepoint(pygame.mouse.get_pos())):
-            ball_pos = list(pygame.mouse.get_pos())
-            ball_vel = [0, 0]
-            GAME_STARTED = True
+    global ball_pos, ball_vel, GAME_STARTED, BALL_ANGLE, INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY
+    if pygame.mouse.get_pressed()[0]:
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        # Überprüfe, ob die Maus auf einem der Slider ist
+        if slider1_rect.collidepoint(mouse_x, mouse_y):
+            INITIAL_BALL_IMPULSE = int((mouse_x - slider1_rect.left) / slider1_rect.width * (SLIDER_MAX_VALUE - SLIDER_MIN_VALUE) + SLIDER_MIN_VALUE)
+        elif slider2_rect.collidepoint(mouse_x, mouse_y):
+            GRAVITY_STRENGTH = int((mouse_x - slider2_rect.left) / slider2_rect.width * (SLIDER_MAX_VALUE - SLIDER_MIN_VALUE) + SLIDER_MIN_VALUE)
+            GRAVITY = 0.1 * GRAVITY_STRENGTH
+        elif angle_slider_rect.collidepoint(mouse_x, mouse_y):
+            BALL_ANGLE = int((mouse_x - angle_slider_rect.left) / angle_slider_rect.width * (SLIDER_MAX_ANGLE - SLIDER_MIN_ANGLE) + SLIDER_MIN_ANGLE)
+
+        else:
+            # Starte das Spiel nur, wenn außerhalb der Sliderbereiche geklickt wird
+            if not GAME_STARTED:
+                angle_rad = math.radians(BALL_ANGLE)
+                ball_vel = [
+                    INITIAL_BALL_IMPULSE * math.cos(angle_rad),
+                    INITIAL_BALL_IMPULSE * math.sin(angle_rad)
+                ]
+                ball_pos = list(pygame.mouse.get_pos())
+                GAME_STARTED = True
+
+
+
+
+##### GUI #####
 
 def draw_gui():
-    # Display GUI elements
+    # Zeigt die GUI-Elemente auf dem Bildschirm an, einschließlich der aktuellen Position und Geschwindigkeit der Kugel.
     speed = math.sqrt(ball_vel[0]**2 + ball_vel[1]**2)
     position_text = f'X: {ball_pos[0]:.2f}, Y: {ball_pos[1]:.2f}'
-    speed_text = f'Speed: {speed:.2f}'  # Display speed with 2 decimal places
+    speed_text = f'Speed: {speed:.2f}'
     position_surf = font.render(position_text, True, pygame.Color('white'))
     speed_surf = font.render(speed_text, True, pygame.Color('white'))
     window.blit(position_surf, (10, 10))
     window.blit(speed_surf, (10, 40))
 
-def draw_slider(slider_rect, slider_value, text, text_pos):
-    # Draw slider bar
+def draw_slider(slider_rect, slider_value, text, text_pos, min_value, max_value):
     pygame.draw.rect(window, SLIDER_COLOR, slider_rect)
-    # Calculate handle position
-    handle_pos = slider_rect.left + (slider_value - SLIDER_MIN_VALUE) / (SLIDER_MAX_VALUE - SLIDER_MIN_VALUE) * (slider_rect.width - SLIDER_HEIGHT)
-
+    # Berechne die Position des Handles basierend auf dem Slider-Wert
+    normalized_value = (slider_value - min_value) / (max_value - min_value)
+    handle_pos = slider_rect.left + normalized_value * (slider_rect.width - SLIDER_HEIGHT)
     handle_rect = pygame.Rect(handle_pos, slider_rect.centery - SLIDER_HEIGHT // 2, SLIDER_HEIGHT, SLIDER_HEIGHT)
-    # Draw slider handle
     pygame.draw.rect(window, SLIDER_HANDLE_COLOR, handle_rect)
-    # Draw slider text with value
+    # Zeichne den Text für den Slider
     text_with_value = f"{text}: {slider_value}"
     text_surf = font.render(text_with_value, True, SLIDER_TEXT_COLOR)
     window.blit(text_surf, text_pos)
 
+
+
+##### Pause Menu #####
+
 def show_controls_popup():
+    # Zeigt ein Popup-Fenster mit den Spielsteuerungen an.
     popup_font = pygame.font.SysFont(None, 24)
     popup_text = [
         "Controls:",
@@ -264,6 +320,7 @@ def show_controls_popup():
         "R - Reset game"
     ]
 
+    # Pop-Up Menu Initialisierung
     popup_rect = pygame.Rect(0, 0, 500, 800)
     popup_surface = pygame.Surface((popup_rect.width, popup_rect.height))
     popup_surface.fill((25, 25, 25))
@@ -272,11 +329,13 @@ def show_controls_popup():
         text_surf = popup_font.render(line, True, pygame.Color('white'))
         popup_surface.blit(text_surf, (25, 25 + i * 25))
 
+    # Button
     continue_button_rect = pygame.Rect(25, 150, 150, 50)
     pygame.draw.rect(popup_surface, (RED), continue_button_rect)
     continue_button_text = popup_font.render("Continue", True, pygame.Color('white'))
     popup_surface.blit(continue_button_text, (60, 168))
 
+    # Aktivieren des Menü
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -296,48 +355,43 @@ def show_controls_popup():
         pygame.display.flip()
         clock.tick(60)
 
-def game_loop():
-    global collision_cooldown, slider1_rect, slider2_rect, INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED
 
+
+##### Game Loop #####
+
+def game_loop():
+     # Hauptspiel-Schleife, die alle anderen Funktionen aufruft und das Spiel steuert.
+    global collision_cooldown, slider1_rect, slider2_rect, angle_slider_rect, INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE
+
+    # Slider Initialisierung
     slider1_rect = pygame.Rect(300, 40, SLIDER_WIDTH, SLIDER_HEIGHT)
     slider2_rect = pygame.Rect(300, 90, SLIDER_WIDTH, SLIDER_HEIGHT)
+    angle_slider_rect = pygame.Rect(300, 140, SLIDER_WIDTH, SLIDER_HEIGHT)
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            # Pause Menu
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     show_controls_popup()
-
-        # Slider events handling
-        if pygame.mouse.get_pressed()[0] and not GAME_STARTED:
-            mouse_pos = pygame.mouse.get_pos()
-            if slider1_rect.collidepoint(mouse_pos):
-                # Update INITIAL_BALL_IMPULSE based on slider value
-                INITIAL_BALL_IMPULSE = int((mouse_pos[0] - slider1_rect.left) / slider1_rect.width * (SLIDER_MAX_VALUE - SLIDER_MIN_VALUE) + SLIDER_MIN_VALUE)
-            elif slider2_rect.collidepoint(mouse_pos):
-                # Update GRAVITY_STRENGTH based on slider value
-                GRAVITY_STRENGTH = int((mouse_pos[0] - slider2_rect.left) / slider2_rect.width * (SLIDER_MAX_VALUE - SLIDER_MIN_VALUE) + SLIDER_MIN_VALUE)
-                GRAVITY = 0.1 * GRAVITY_STRENGTH  # Adjust gravity strength
-
+        
         window.fill(BLACK)
         move_ball()
         draw_ball()
         handle_keys()
         handle_mouse()
+        check_collision()
         draw_flipper(left_flipper_pos, left_flipper_angle, False)
         draw_flipper(right_flipper_pos, right_flipper_angle, True)
         draw_bumpers()
-        check_collision()
-
-        # Draw GUI
         draw_gui()
+        draw_slider(slider1_rect, INITIAL_BALL_IMPULSE, "Initial Ball Impulse", (300, 20), SLIDER_MIN_VALUE, SLIDER_MAX_VALUE)
+        draw_slider(slider2_rect, GRAVITY_STRENGTH, "Gravity Strength", (300, 70), SLIDER_MIN_VALUE, SLIDER_MAX_VALUE)
+        draw_slider(angle_slider_rect, BALL_ANGLE, "Launch Angle", (300, 120), SLIDER_MIN_ANGLE, SLIDER_MAX_ANGLE)
 
-        # Draw sliders
-        draw_slider(slider1_rect, INITIAL_BALL_IMPULSE, "Initial Ball Impulse", (300, 20))
-        draw_slider(slider2_rect, GRAVITY_STRENGTH, "Gravity Strength", (300, 70))
 
         pygame.display.flip()
         clock.tick(60)
