@@ -1,177 +1,177 @@
 import pygame
 import sys
-import random
 import math
+from config import *
 from pygame.locals import *
+# from gui import draw_gui
 
-# Konstanten definieren
-WINDOW_WIDTH, WINDOW_HEIGHT = 500, 800
-BALL_INITIAL_SPEED = 5  # Geschwindigkeit des Balls beim Start
-BALL_DIAMETER = 20
-BALL_RADIUS = BALL_DIAMETER // 2
-FLIPPER_WIDTH, FLIPPER_HEIGHT = 200, 10
-GRAVITY = 0.1
-FLIPPER_ANGLE_SPEED = 5  # Rotationsgeschwindigkeit in Grad
-
-# Pygame initialisieren
+# Initialisierung von Pygame
 pygame.init()
-window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-pygame.display.set_caption('Flipper-Spiel')
-clock = pygame.time.Clock()
+pygame.font.init()
 font = pygame.font.SysFont(None, 24) 
 
-def reset_ball():
-    x_pos = random.randint(BALL_DIAMETER, WINDOW_WIDTH - BALL_DIAMETER)
-    y_pos = 50  # Startposition des Balls in y-Richtung
-    ball_speed_x = random.choice([-1, 1]) * BALL_INITIAL_SPEED  # Zufällige horizontale Richtung
-    ball_speed_y = BALL_INITIAL_SPEED  # Startgeschwindigkeit nach unten
-    return pygame.Rect(x_pos, y_pos, BALL_DIAMETER, BALL_DIAMETER), ball_speed_x, ball_speed_y
+# Kugel Eigenschaften
+ball_pos = [WIDTH // 2, HEIGHT // 4]
+ball_vel = [0, 0]
 
-ball, ball_speed_x, ball_speed_y = reset_ball()
+# Flipper Eigenschaften
+left_flipper_angle = 0
+right_flipper_angle = 0
+left_flipper_pos = [0, HEIGHT - 100]
+right_flipper_pos = [WIDTH, HEIGHT - 100]
 
-# Button Konfiguration
-button_color = (255, 0, 0)  # Rot
-button_hover_color = (200, 0, 0)  # Dunkelrot
-button_rect = pygame.Rect(WINDOW_WIDTH - 110, 10, 100, 30)
-button_text = font.render('Close', True, pygame.Color('white'))
-
-# Flipper-Positionen und Drehpunkte
-flipper_left_pivot = (0, WINDOW_HEIGHT - 60)
-flipper_right_pivot = (WINDOW_WIDTH, WINDOW_HEIGHT - 60)
-flipper_left_angle, flipper_right_angle = 0, 0
-
-def rotate_flipper(pivot, angle, length, flipper_side):
-    rad_angle = math.radians(angle)
-    if flipper_side == 'left':
-        end_x = pivot[0] + length * math.cos(rad_angle)
-        end_y = pivot[1] - length * math.sin(rad_angle)
-        return (pivot[0], pivot[1], end_x, end_y)
-    else:
-        start_x = pivot[0] - length * math.cos(rad_angle)
-        start_y = pivot[1] + length * math.sin(rad_angle)
-        return (start_x, start_y, pivot[0], pivot[1])
+# Bumper
+bumpers = [{'pos': [100, 300], 'radius': BUMPER_RADIUS, 'color': RED}]
 
 def move_ball():
-    global ball, ball_speed_x, ball_speed_y
-    ball.x += ball_speed_x
-    ball.y += ball_speed_y
-    ball_speed_y += GRAVITY
+    if not GAME_STARTED:
+        return
+    ball_vel[1] += GRAVITY
+    ball_pos[0] += ball_vel[0]
+    ball_pos[1] += ball_vel[1]
+    if ball_pos[0] <= BALL_RADIUS or ball_pos[0] >= WIDTH - BALL_RADIUS:
+        ball_vel[0] = -ball_vel[0]
+    if ball_pos[1] <= BALL_RADIUS or ball_pos[1] >= HEIGHT - BALL_RADIUS:
+        ball_vel[1] = -ball_vel[1]
+    for bumper in bumpers:
+        if math.hypot(ball_pos[0] - bumper['pos'][0], ball_pos[1] - bumper['pos'][1]) < BALL_RADIUS + bumper['radius']:
+            angle = math.atan2(ball_pos[1] - bumper['pos'][1], ball_pos[0] - bumper['pos'][0])
+            ball_vel[0] += 5 * math.cos(angle)
+            ball_vel[1] += 5 * math.sin(angle)
 
-    if ball.left <= 0 or ball.right >= WINDOW_WIDTH:
-        ball_speed_x = -ball_speed_x
-    if ball.top <= 0:
-        ball_speed_y = -ball_speed_y
-    if ball.bottom > WINDOW_HEIGHT:
-        ball, ball_speed_x, ball_speed_y = reset_ball()
+def draw_ball():
+    pygame.draw.circle(window, WHITE, (int(ball_pos[0]), int(ball_pos[1])), BALL_RADIUS)
+
+def segment_intersection(p1, p2, p3, p4):
+    """Prüft, ob zwei Segmente (p1-p2 und p3-p4) sich schneiden"""
+    dx1 = p2[0] - p1[0]
+    dy1 = p2[1] - p1[1]
+    dx2 = p4[0] - p3[0]
+    dy2 = p4[1] - p3[1]
+    delta = dx2 * dy1 - dy2 * dx1
+    if delta == 0:  # Parallele Linien
+        return False
+    s = (dx1 * (p3[1] - p1[1]) + dy1 * (p1[0] - p3[0])) / delta
+    t = (dx2 * (p1[1] - p3[1]) + dy2 * (p3[0] - p1[0])) / -delta
+    return (0 <= s <= 1) and (0 <= t <= 1)
+
+def will_collide(ball_pos, ball_vel, flipper_start, flipper_end):
+    """Überprüft, ob die Kugel auf ihrem Weg mit dem Flipper kollidieren wird"""
+    future_ball_pos = [ball_pos[0] + ball_vel[0], ball_pos[1] + ball_vel[1]]
+    return segment_intersection(ball_pos, future_ball_pos, flipper_start, flipper_end)
 
 def get_line_normal(start, end):
     dx = end[0] - start[0]
     dy = end[1] - start[1]
     normal = (-dy, dx)
-    normal_length = math.sqrt(normal[0]**2 + normal[1]**2)
-    return (normal[0] / normal_length, normal[1] / normal_length)
+    length = math.sqrt(normal[0]**2 + normal[1]**2)
+    return (normal[0] / length, normal[1] / length)
 
-def reflect(ball_speed, normal):
-    """Reflektiert den Geschwindigkeitsvektor des Balls an der Normalen der Flipperoberfläche."""
-    speed_mag = math.sqrt(ball_speed[0]**2 + ball_speed[1]**2)
-    dot_product = ball_speed[0] * normal[0] + ball_speed[1] * normal[1]
-    reflected = (
-        ball_speed[0] - 2 * dot_product * normal[0],
-        ball_speed[1] - 2 * dot_product * normal[1]
-    )
-    # Skaliert die reflektierte Geschwindigkeit zurück auf die ursprüngliche Geschwindigkeitsmagnitude
-    reflected_mag = math.sqrt(reflected[0]**2 + reflected[1]**2)
-    return (reflected[0] / reflected_mag * speed_mag, reflected[1] / reflected_mag * speed_mag)
-
-def update_ball_speed(ball_speed, flipper_line):
-    """Aktualisiert die Ballgeschwindigkeit basierend auf der Kollision mit dem Flipper."""
-    start, end = (flipper_line[0], flipper_line[1]), (flipper_line[2], flipper_line[3])
+def reflect_ball(start, end):
     normal = get_line_normal(start, end)
-    return reflect(ball_speed, normal)
+    new_velocity = reflect((ball_vel[0], ball_vel[1]), normal)
+    ball_vel[0] = new_velocity[0]
+    ball_vel[1] = new_velocity[1]
+    # Einen kleinen Schub hinzufügen, um zu verhindern, dass die Kugel stecken bleibt
+    escape_distance = 2
+    ball_pos[0] += normal[0] * escape_distance
+    ball_pos[1] += normal[1] * escape_distance
 
-def point_to_line_distance(px, py, x1, y1, x2, y2):
-    norm = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-    if norm == 0:
-        return math.sqrt((px - x1)**2 + (py - y1)**2)
-    u = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / float(norm**2)
-    closest_x = x1 + u * (x2 - x1)
-    closest_y = y1 + u * (y2 - y1)
-    distance = math.sqrt((closest_x - px)**2 + (closest_y - py)**2)
-    return distance
+def reflect(velocity, normal):
+    dot_product = velocity[0] * normal[0] + velocity[1] * normal[1]
+    reflected_velocity = (
+        velocity[0] - 2 * dot_product * normal[0],
+        velocity[1] - 2 * dot_product * normal[1]
+    )
+    return reflected_velocity
 
-def check_collision(ball, flipper_line):
-    ball_center_x = ball.x + BALL_RADIUS
-    ball_center_y = ball.y + BALL_RADIUS
-    start_x, start_y, end_x, end_y = flipper_line
-    distance = point_to_line_distance(ball_center_x, ball_center_y, start_x, start_y, end_x, end_y)
-    return distance <= BALL_RADIUS and (min(start_x, end_x) <= ball_center_x <= max(start_x, end_x) or min(start_y, end_y) <= ball_center_y <= max(start_y, end_y))
+def check_collision():
+    global ball_pos, ball_vel
+    for flipper_pos, angle, is_right in [(left_flipper_pos, left_flipper_angle, False), (right_flipper_pos, right_flipper_angle, True)]:
+        end_x = flipper_pos[0] + FLIPPER_LENGTH * math.cos(math.radians(angle)) * (-1 if is_right else 1)
+        end_y = flipper_pos[1] - FLIPPER_LENGTH * math.sin(math.radians(angle))
+        if point_line_distance(ball_pos, flipper_pos, (end_x, end_y)) <= BALL_RADIUS:
+            reflect_ball((flipper_pos[0], flipper_pos[1]), (end_x, end_y))
 
-def handle_input():
-    global flipper_left_angle, flipper_right_angle
+def point_line_distance(point, start, end):
+    px, py = point
+    sx, sy = start
+    ex, ey = end
+
+    line_vec = (ex - sx, ey - sy)
+    point_vec = (px - sx, py - sy)
+
+    line_len = math.sqrt(line_vec[0]**2 + line_vec[1]**2)
+    line_unitvec = (line_vec[0] / line_len, line_vec[1] / line_len)
+
+    proj_length = point_vec[0] * line_unitvec[0] + point_vec[1] * line_unitvec[1]
+    proj_length = max(0, min(proj_length, line_len))
+    nearest = (sx + line_unitvec[0] * proj_length, sy + line_unitvec[1] * proj_length)
+
+    dist = math.sqrt((px - nearest[0])**2 + (py - nearest[1])**2)
+    return dist
+
+
+def draw_flipper(position, angle, is_right):
+    start_x, start_y = position
+    end_x = start_x + FLIPPER_LENGTH * math.cos(math.radians(angle)) * (-1 if is_right else 1)
+    end_y = start_y - FLIPPER_LENGTH * math.sin(math.radians(angle))
+    pygame.draw.line(window, WHITE, (start_x, start_y), (end_x, end_y), FLIPPER_WIDTH)
+
+def draw_bumpers():
+    for bumper in bumpers:
+        pygame.draw.circle(window, bumper['color'], (int(bumper['pos'][0]), int(bumper['pos'][1])), bumper['radius'])
+
+def handle_keys():
+    global left_flipper_angle, right_flipper_angle
     keys = pygame.key.get_pressed()
-    if keys[K_a]:
-        flipper_left_angle = min(30, flipper_left_angle + FLIPPER_ANGLE_SPEED)
+    if keys[pygame.K_a]:
+        left_flipper_angle = 30
     else:
-        flipper_left_angle = max(0, flipper_left_angle - FLIPPER_ANGLE_SPEED)
-    if keys[K_d]:
-        flipper_right_angle = max(-30, flipper_right_angle - FLIPPER_ANGLE_SPEED)
+        left_flipper_angle = 0
+    if keys[pygame.K_d]:
+        right_flipper_angle = 30
     else:
-        flipper_right_angle = min(0, flipper_right_angle + FLIPPER_ANGLE_SPEED)
+        right_flipper_angle = 0
 
-# (Füge hier den oberen Teil des vorherigen Codes ein, einschließlich der Importe und Definitionen von reset_ball, rotate_flipper, usw.)
-
-def draw():
-    window.fill((0, 0, 0))
-    pygame.draw.ellipse(window, (255, 255, 255), ball)
-    left_flipper_line = rotate_flipper(flipper_left_pivot, flipper_left_angle, FLIPPER_WIDTH, 'left')
-    right_flipper_line = rotate_flipper(flipper_right_pivot, flipper_right_angle, FLIPPER_WIDTH, 'right')
-    pygame.draw.line(window, (255, 0, 0), (left_flipper_line[0], left_flipper_line[1]), (left_flipper_line[2], left_flipper_line[3]), FLIPPER_HEIGHT)
-    pygame.draw.line(window, (255, 0, 0), (right_flipper_line[0], right_flipper_line[1]), (right_flipper_line[2], right_flipper_line[3]), FLIPPER_HEIGHT)
+def handle_mouse():
+    global ball_pos, ball_vel, GAME_STARTED
+    if pygame.mouse.get_pressed()[0] and not GAME_STARTED:
+        ball_pos = list(pygame.mouse.get_pos())
+        ball_vel = [0, 0]
+        GAME_STARTED = True
 
 def draw_gui():
-    # Zeigt die GUI-Elemente an
-    speed = math.sqrt(ball_speed_x**2 + ball_speed_y**2)
-    position_text = f'X: {ball.x}, Y: {ball.y}'
-    speed_text = f'Speed: {speed:.2f}'
+    # Display GUI elements
+    speed = math.sqrt(ball_vel[0]**2 + ball_vel[1]**2)
+    position_text = f'X: {ball_pos[0]:.2f}, Y: {ball_pos[1]:.2f}'
+    speed_text = f'Speed: {speed:.2f}'  # Display speed with 2 decimal places
     position_surf = font.render(position_text, True, pygame.Color('white'))
     speed_surf = font.render(speed_text, True, pygame.Color('white'))
     window.blit(position_surf, (10, 10))
     window.blit(speed_surf, (10, 40))
-    # Button zeichnen
-    mouse_pos = pygame.mouse.get_pos()
-    if button_rect.collidepoint(mouse_pos):
-        pygame.draw.rect(window, button_hover_color, button_rect)
-    else:
-        pygame.draw.rect(window, button_color, button_rect)
-    window.blit(button_text, (button_rect.x + 5, button_rect.y + 5))
 
-def check_button(mouse_pos):
-    return button_rect.collidepoint(mouse_pos)
+def game_loop():
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        window.fill(BLACK)
+        move_ball()
+        draw_ball()
+        handle_keys()
+        handle_mouse()
+        draw_flipper(left_flipper_pos, left_flipper_angle, False)
+        draw_flipper(right_flipper_pos, right_flipper_angle, True)
+        draw_bumpers()
+        check_collision()
 
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Linke Maustaste
-            if check_button(event.pos):
-                running = False
-    
-    window.fill((0, 0, 0)) 
-    handle_input()
-    move_ball()
-    draw()
-    draw_gui()
-    pygame.display.update() 
+        # Draw GUI    
+        draw_gui()
 
-    left_flipper_line = rotate_flipper(flipper_left_pivot, flipper_left_angle, FLIPPER_WIDTH, 'left')
-    right_flipper_line = rotate_flipper(flipper_right_pivot, flipper_right_angle, FLIPPER_WIDTH, 'right')
-    if check_collision(ball, left_flipper_line):
-        ball_speed_x, ball_speed_y = update_ball_speed((ball_speed_x, ball_speed_y), left_flipper_line)
-    if check_collision(ball, right_flipper_line):
-        ball_speed_x, ball_speed_y = update_ball_speed((ball_speed_x, ball_speed_y), right_flipper_line)
-    
-    clock.tick(60)
+        pygame.display.flip()
+        clock.tick(60)
 
-pygame.quit()
-sys.exit()
+if __name__ == '__main__':
+    game_loop()
