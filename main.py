@@ -34,7 +34,7 @@ COLLISION_COOLDOWN_MAX = 30
 
 # Initialisierung des Fensters
 window = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Flipper")
+pygame.display.set_caption("Flippernator3000")
 
 # Initialisierung der Uhr für die Spielsteuerung der Framerate
 clock = pygame.time.Clock()
@@ -271,7 +271,7 @@ def handle_mouse():
         else:
             # Starte das Spiel nur, wenn außerhalb der Sliderbereiche geklickt wird
             if not GAME_STARTED:
-                angle_rad = math.radians(BALL_ANGLE)
+                angle_rad = math.radians(BALL_ANGLE + 90)
                 ball_vel = [
                     INITIAL_BALL_IMPULSE * math.cos(angle_rad),
                     INITIAL_BALL_IMPULSE * math.sin(angle_rad)
@@ -286,13 +286,20 @@ def handle_mouse():
 
 def draw_gui():
     # Zeigt die GUI-Elemente auf dem Bildschirm an, einschließlich der aktuellen Position und Geschwindigkeit der Kugel.
-    speed = math.sqrt(ball_vel[0]**2 + ball_vel[1]**2)
     position_text = f'X: {ball_pos[0]:.2f}, Y: {ball_pos[1]:.2f}'
+
+    speed = math.sqrt(ball_vel[0]**2 + ball_vel[1]**2)
     speed_text = f'Speed: {speed:.2f}'
+
+    pause_text = "Drücke ESC zum Pausieren" 
+
     position_surf = font.render(position_text, True, pygame.Color('white'))
     speed_surf = font.render(speed_text, True, pygame.Color('white'))
-    window.blit(position_surf, (10, 10))
-    window.blit(speed_surf, (10, 40))
+    pause_surf = font.render(pause_text, True, pygame.Color('yellow'))
+
+    window.blit(pause_surf, (10, 10))
+    window.blit(position_surf, (10, 40))
+    window.blit(speed_surf, (10, 70))
 
 def draw_slider(slider_rect, slider_value, text, text_pos, min_value, max_value):
     pygame.draw.rect(window, SLIDER_COLOR, slider_rect)
@@ -364,9 +371,9 @@ def game_loop():
     global collision_cooldown, slider1_rect, slider2_rect, angle_slider_rect, INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE
 
     # Slider Initialisierung
-    slider1_rect = pygame.Rect(300, 40, SLIDER_WIDTH, SLIDER_HEIGHT)
-    slider2_rect = pygame.Rect(300, 90, SLIDER_WIDTH, SLIDER_HEIGHT)
-    angle_slider_rect = pygame.Rect(300, 140, SLIDER_WIDTH, SLIDER_HEIGHT)
+    slider1_rect = pygame.Rect(320, 40, SLIDER_WIDTH, SLIDER_HEIGHT)
+    slider2_rect = pygame.Rect(320, 90, SLIDER_WIDTH, SLIDER_HEIGHT)
+    angle_slider_rect = pygame.Rect(320, 140, SLIDER_WIDTH, SLIDER_HEIGHT)
 
     while True:
         for event in pygame.event.get():
@@ -388,9 +395,9 @@ def game_loop():
         draw_flipper(right_flipper_pos, right_flipper_angle, True)
         draw_bumpers()
         draw_gui()
-        draw_slider(slider1_rect, INITIAL_BALL_IMPULSE, "Initial Ball Impulse", (300, 20), SLIDER_MIN_VALUE, SLIDER_MAX_VALUE)
-        draw_slider(slider2_rect, GRAVITY_STRENGTH, "Gravity Strength", (300, 70), SLIDER_MIN_VALUE, SLIDER_MAX_VALUE)
-        draw_slider(angle_slider_rect, BALL_ANGLE, "Launch Angle", (300, 120), SLIDER_MIN_ANGLE, SLIDER_MAX_ANGLE)
+        draw_slider(slider1_rect, INITIAL_BALL_IMPULSE, "Initial Ball Impulse", (320, 20), SLIDER_MIN_VALUE, SLIDER_MAX_VALUE)
+        draw_slider(slider2_rect, GRAVITY_STRENGTH, "Gravity Strength", (320, 70), SLIDER_MIN_VALUE, SLIDER_MAX_VALUE)
+        draw_slider(angle_slider_rect, BALL_ANGLE, "Launch Angle", (320, 120), SLIDER_MIN_ANGLE, SLIDER_MAX_ANGLE)
 
 
         pygame.display.flip()
