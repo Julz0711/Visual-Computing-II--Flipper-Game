@@ -34,7 +34,6 @@ COLLISION_COOLDOWN_MAX = 30
 
 # Initialisierung des Fensters
 window = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Flippernator3000")
 
 # Initialisierung der Uhr für die Spielsteuerung der Framerate
 clock = pygame.time.Clock()
@@ -52,14 +51,14 @@ def move_ball():
     
     # Wenn die Kugel noch keine Anfangsgeschwindigkeit hat
     if ball_vel == [0, 0]:
-        ball_vel[1] = INITIAL_BALL_IMPULSE  # Setze den Anfangsimpuls nach unten
+        ball_vel[0] = INITIAL_BALL_IMPULSE
+        ball_vel[1] = INITIAL_BALL_IMPULSE
 
-    # Schwerkraft anwenden, die die Kugel nach unten zieht
-    ball_vel[1] += GRAVITY * DAMPENING
+    ball_vel[1] += GRAVITY * dt
 
     # Aktualisiere die horizontale / vertikale Position der Kugel
-    ball_pos[0] += ball_vel[0]
-    ball_pos[1] += ball_vel[1]
+    ball_pos[0] += ball_vel[0] * dt + 0.5 * DAMPENING * dt**2
+    ball_pos[1] += ball_vel[1] * dt + 0.5 * GRAVITY * DAMPENING * dt**2
 
     # Überprüfung auf Kollision mit den Seitenwänden des Spielfelds
     if ball_pos[0] <= BALL_RADIUS or ball_pos[0] >= WIDTH - BALL_RADIUS:
@@ -401,6 +400,7 @@ def game_loop():
 
 
         pygame.display.flip()
+        pygame.display.set_caption(f"Flippernator3000 - FPS: {clock.get_fps():.2f}")
         clock.tick(60)
 
 if __name__ == '__main__':
