@@ -59,12 +59,6 @@ def move_ball():
     max_step = BALL_RADIUS / 2
     ball_pos[0] = max(min(ball_pos[0], GAME_WIDTH - BALL_RADIUS), BALL_RADIUS)
     ball_pos[1] = max(min(ball_pos[1], HEIGHT - BALL_RADIUS), BALL_RADIUS)
-
-    if ball_pos[0] <= BALL_RADIUS or ball_pos[0] >= GAME_WIDTH - BALL_RADIUS:
-        ball_vel[0] = -ball_vel[0]
-
-    if ball_pos[1] <= BALL_RADIUS or ball_pos[1] >= HEIGHT - BALL_RADIUS:
-        ball_vel[1] = -ball_vel[1]
     
     for bumper in bumpers:
         if math.hypot(ball_pos[0] - bumper['pos'][0], ball_pos[1] - bumper['pos'][1]) < BALL_RADIUS + bumper['radius']:
@@ -194,7 +188,7 @@ def check_collision():
             reflect_ball(flipper_start, flipper_end)
             break
 
-    # Additional collision check for walls
+    
     if ball_pos[0] <= BALL_RADIUS or ball_pos[0] >= GAME_WIDTH - BALL_RADIUS:
         ball_vel[0] = -ball_vel[0]
 
@@ -408,7 +402,6 @@ def show_controls_popup():
         window.blit(popup_surface, popup_rect.topleft)
         pygame.display.flip()
         clock.tick(60)
-
 
 
 ##### Game Loop #####
