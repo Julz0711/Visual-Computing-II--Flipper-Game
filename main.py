@@ -20,14 +20,29 @@ font = pygame.font.SysFont(None, 24)
 ball_pos = [GAME_WIDTH // 2, HEIGHT // 4]
 ball_vel = [0, 0]
 
+
+# ramp positions
+ramp_left_start = (0, HEIGHT - 200)
+ramp_left_end = (ramp_left_start[0] + RAMP_LENGTH * math.cos(math.radians(RAMP_ANGLE)),
+                 ramp_left_start[1] - RAMP_LENGTH * math.sin(math.radians(RAMP_ANGLE)))
+
+ramp_right_start = (GAME_WIDTH, HEIGHT - 200)
+ramp_right_end = (ramp_right_start[0] - RAMP_LENGTH * math.cos(math.radians(RAMP_ANGLE)),
+                  ramp_right_start[1] - RAMP_LENGTH * math.sin(math.radians(RAMP_ANGLE)))
+
+# flipper positions
+left_flipper_pos = ramp_left_end
+right_flipper_pos = ramp_right_end
+
 # Initialisierung der Flipper
 left_flipper_angle = 0
 right_flipper_angle = 0
-left_flipper_pos = [0, HEIGHT - 100]
-right_flipper_pos = [GAME_WIDTH, HEIGHT - 100]
 
 # Initialisierung des Bumpers
-bumpers = [{'pos': [100, 300], 'radius': BUMPER_RADIUS, 'color': RED, 'active': False, 'timer': 0}]
+bumpers = [
+    {'pos': [100, 300], 'radius': BUMPER_RADIUS, 'color': BLUE, 'active': False, 'timer': 0},
+    {'pos': [400, 450], 'radius': BUMPER_RADIUS, 'color': BLUE, 'active': False, 'timer': 0}
+]
 
 
 # Initialisierung des Fensters
@@ -39,6 +54,26 @@ clock = pygame.time.Clock()
 
 
 ##### Ball Physics #####
+
+def reflect_ball_velocity(ball_pos, ball_vel, bumper_pos, bumper_radius):
+    # Calculate the angle of incidence
+    angle_of_incidence = math.atan2(ball_pos[1] - bumper_pos[1], ball_pos[0] - bumper_pos[0])
+    
+    # Reflect the velocity vector
+    normal = (math.cos(angle_of_incidence), math.sin(angle_of_incidence))
+    dot_product = ball_vel[0] * normal[0] + ball_vel[1] * normal[1]
+    ball_vel[0] -= 2 * dot_product * normal[0]
+    ball_vel[1] -= 2 * dot_product * normal[1]
+
+    ball_vel[0] *= BUMPER_BOUNCE
+    ball_vel[1] *= BUMPER_BOUNCE
+     
+    # Ensure the ball doesn't move too far into the bumper
+    distance = math.hypot(ball_pos[0] - bumper_pos[0], ball_pos[1] - bumper_pos[1])
+    overlap = BALL_RADIUS + bumper_radius - distance
+    if overlap > 0:
+        ball_pos[0] += overlap * normal[0]
+        ball_pos[1] += overlap * normal[1]
 
 def move_ball():
     global GRAVITY, INITIAL_BALL_IMPULSE, BUMPER_BOUNCE
@@ -55,19 +90,20 @@ def move_ball():
     ball_pos[0] += ball_vel[0] * dt
     ball_pos[1] += ball_vel[1] * dt
 
-    # Ensure the ball doesn't move too far in a single frame
-    max_step = BALL_RADIUS / 2
+    # Apply damping
+    ball_vel[0] *= DAMPING_FACTOR
+    ball_vel[1] *= DAMPING_FACTOR
+
     ball_pos[0] = max(min(ball_pos[0], GAME_WIDTH - BALL_RADIUS), BALL_RADIUS)
     ball_pos[1] = max(min(ball_pos[1], HEIGHT - BALL_RADIUS), BALL_RADIUS)
     
+    # Bumper collision logic
     for bumper in bumpers:
         if math.hypot(ball_pos[0] - bumper['pos'][0], ball_pos[1] - bumper['pos'][1]) < BALL_RADIUS + bumper['radius']:
             if not bumper['active']:
                 bumper['active'] = True
                 bumper['timer'] = 10
-            angle = math.atan2(ball_pos[1] - bumper['pos'][1], ball_pos[0] - bumper['pos'][0])
-            ball_vel[0] += BUMPER_BOUNCE * math.cos(angle)
-            ball_vel[1] += BUMPER_BOUNCE * math.sin(angle)
+            reflect_ball_velocity(ball_pos, ball_vel, bumper['pos'], bumper['radius'])
 
     # Check if the ball is rolling on the flippers
     check_ball_on_flipper()
@@ -82,11 +118,11 @@ def check_ball_on_flipper():
         end_y = start_y - FLIPPER_LENGTH * math.sin(math.radians(angle))
 
         # is ball on flipper?
-        if is_ball_on_flipper(ball_pos, ball_vel, (start_x, start_y), (end_x, end_y)):
+        if is_ball_on_flipper(ball_pos, (start_x, start_y), (end_x, end_y)):
             # rolling physics
             apply_flipper_physics(ball_pos, ball_vel, (start_x, start_y), (end_x, end_y))
 
-def is_ball_on_flipper(ball_pos, ball_vel, flipper_start, flipper_end):
+def is_ball_on_flipper(ball_pos, flipper_start, flipper_end):
     # Check if the ball is on the flipper using the point-line distance
     return point_line_distance(ball_pos, flipper_start, flipper_end) <= BALL_RADIUS
 
@@ -108,6 +144,12 @@ def apply_flipper_physics(ball_pos, ball_vel, flipper_start, flipper_end):
 def draw_ball():
     # Zeichnet die Kugel an ihrer aktuellen Position auf dem Spielfeld.
     pygame.draw.circle(window, WHITE, (int(ball_pos[0]), int(ball_pos[1])), BALL_RADIUS)
+
+    # Direction line
+    direction_length = 30 * math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
+    angle = math.atan2(ball_vel[1], ball_vel[0])
+    end_pos = (ball_pos[0] + direction_length * math.cos(angle), ball_pos[1] + direction_length * math.sin(angle))
+    pygame.draw.line(window, RED, (ball_pos[0], ball_pos[1]), end_pos, 2)
 
 def segment_intersection(p1, p2, p3, p4):
     # Prüft, ob zwei Segmente (p1-p2 und p3-p4) sich schneiden
@@ -231,7 +273,7 @@ def draw_flipper(position, angle, is_right):
     end_y = start_y - FLIPPER_LENGTH * math.sin(math.radians(angle))
 
     # Zeichnet eine Linie, die den Flipper darstellt.
-    pygame.draw.line(window, WHITE, (start_x, start_y), (end_x, end_y), FLIPPER_WIDTH)
+    pygame.draw.line(window, RED, (start_x, start_y), (end_x, end_y), FLIPPER_WIDTH)
 
 def draw_bumpers():
     # Durchläuft alle Bumper und zeichnet sie je nach ihrem Aktivierungsstatus.
@@ -252,6 +294,18 @@ def draw_bumpers():
             # Zeichne den Bumper in normaler Größe, wenn er nicht aktiv ist.
             pygame.draw.circle(window, bumper['color'], (int(bumper['pos'][0]), int(bumper['pos'][1])), bumper['radius'])
 
+def draw_ramps():
+    pygame.draw.line(window, WHITE, ramp_left_start, ramp_left_end, 2)
+    pygame.draw.line(window, WHITE, ramp_right_start, ramp_right_end, 2)
+
+
+def check_ramp_collision():
+    global ball_pos, ball_vel
+
+    for ramp_start, ramp_end in [(ramp_left_start, ramp_left_end), (ramp_right_start, ramp_right_end)]:
+        if point_line_distance(ball_pos, ramp_start, ramp_end) <= BALL_RADIUS:
+            reflect_ball(ramp_start, ramp_end)
+            break
 
 
 ##### Event Handler ######
@@ -444,9 +498,11 @@ def game_loop():
         handle_keys()
         handle_mouse()
         check_collision()
+        check_ramp_collision()
         draw_flipper(left_flipper_pos, left_flipper_angle, False)
         draw_flipper(right_flipper_pos, right_flipper_angle, True)
         draw_bumpers()
+        draw_ramps() 
         draw_gui()
         manager.draw_ui(window)
 
