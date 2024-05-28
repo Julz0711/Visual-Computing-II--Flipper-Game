@@ -16,10 +16,12 @@ import pygame_gui
 # Initialisierung von Pygame für Grafik und Schriftarten
 pygame.init()
 pygame.font.init()
-manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'theme.json')
 font = pygame.font.SysFont(None, 24)
 clock = pygame.time.Clock()
 window = pygame.display.set_mode((WIDTH, HEIGHT))
+
+# Initialisiere den UI Manager und lade das Theme aus der theme.json-Datei
+manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'data/theme/theme.json')
 
 # Initialisierung der Kugel mit Startposition und Geschwindigkeit
 ball_pos = [GAME_WIDTH // 2, HEIGHT // 4]
@@ -499,42 +501,50 @@ def draw_gui():
     window.blit(speed_surf, (GAME_WIDTH + 10, 70))
 
 
-# Slider und Labels
-from pygame_gui.elements import UIHorizontalSlider
-from pygame_gui.elements import UILabel
-
 # Initialisierung des Sliders für den initialen Impuls
-initial_impulse_slider = UIHorizontalSlider(relative_rect=pygame.Rect((GAME_WIDTH + 10, 130), (SLIDER_WIDTH, SLIDER_HEIGHT)),
-                                            start_value=INITIAL_BALL_IMPULSE / METER,  # Adjust to show the value in m/s
-                                            value_range=(SLIDER_MIN_VALUE, SLIDER_MAX_VALUE),
-                                            manager=manager)
+initial_impulse_slider = pygame_gui.elements.UIHorizontalSlider(
+    relative_rect=pygame.Rect((GAME_WIDTH + 10, 130), (SLIDER_WIDTH, SLIDER_HEIGHT)),
+    start_value=INITIAL_BALL_IMPULSE / METER,  # Adjust to show the value in m/s
+    value_range=(SLIDER_MIN_VALUE, SLIDER_MAX_VALUE),
+    manager=manager
+)
 
 # Initialisierung des Sliders für die Schwerkraftstärke
-gravity_strength_slider = UIHorizontalSlider(relative_rect=pygame.Rect((GAME_WIDTH + 10, 200), (SLIDER_WIDTH, SLIDER_HEIGHT)),
-                                             start_value=GRAVITY_STRENGTH,
-                                             value_range=(SLIDER_MIN_VALUE, SLIDER_MAX_VALUE),
-                                             manager=manager)
+gravity_strength_slider = pygame_gui.elements.UIHorizontalSlider(
+    relative_rect=pygame.Rect((GAME_WIDTH + 10, 200), (SLIDER_WIDTH, SLIDER_HEIGHT)),
+    start_value=GRAVITY_STRENGTH,
+    value_range=(SLIDER_MIN_VALUE, SLIDER_MAX_VALUE),
+    manager=manager
+)
 
 # Initialisierung des Sliders für den Abschusswinkel der Kugel
-launch_angle_slider = UIHorizontalSlider(relative_rect=pygame.Rect((GAME_WIDTH + 10, 270), (SLIDER_WIDTH, SLIDER_HEIGHT)),
-                                         start_value=BALL_ANGLE,
-                                         value_range=(SLIDER_MIN_ANGLE, SLIDER_MAX_ANGLE),
-                                         manager=manager)
+launch_angle_slider = pygame_gui.elements.UIHorizontalSlider(
+    relative_rect=pygame.Rect((GAME_WIDTH + 10, 270), (SLIDER_WIDTH, SLIDER_HEIGHT)),
+    start_value=BALL_ANGLE,
+    value_range=(SLIDER_MIN_ANGLE, SLIDER_MAX_ANGLE),
+    manager=manager
+)
 
 # Beschriftung für den initialen Impuls-Slider
-initial_impulse_label = UILabel(relative_rect=pygame.Rect((GAME_WIDTH + 10, 100), (SLIDER_WIDTH, 30)),
-                                text=f"Initial Impulse: {INITIAL_BALL_IMPULSE / METER:.2f} m/s",
-                                manager=manager)
+initial_impulse_label = pygame_gui.elements.UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 10, 100), (SLIDER_WIDTH, 30)),
+    text=f"Initial Impulse: {INITIAL_BALL_IMPULSE / METER:.2f} m/s",
+    manager=manager
+)
 
 # Beschriftung für den Schwerkraftstärke-Slider
-gravity_strength_label = UILabel(relative_rect=pygame.Rect((GAME_WIDTH + 10, 170), (SLIDER_WIDTH, 30)),
-                                 text=f"Gravity Strength: {GRAVITY / METER / 9.81:.2f}",
-                                 manager=manager)
+gravity_strength_label = pygame_gui.elements.UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 10, 170), (SLIDER_WIDTH, 30)),
+    text=f"Gravity Strength: {GRAVITY / METER / 9.81:.2f}",
+    manager=manager
+)
 
 # Beschriftung für den Abschusswinkel-Slider
-launch_angle_label = UILabel(relative_rect=pygame.Rect((GAME_WIDTH + 10, 240), (SLIDER_WIDTH, 30)),
-                             text=f"Launch Angle: {BALL_ANGLE:.2f} degrees",
-                             manager=manager)
+launch_angle_label = pygame_gui.elements.UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 10, 240), (SLIDER_WIDTH, 30)),
+    text=f"Launch Angle: {BALL_ANGLE:.2f} degrees",
+    manager=manager
+)
 
 
 

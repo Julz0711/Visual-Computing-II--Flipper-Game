@@ -1,13 +1,14 @@
 # Konstanten
+GAME_STARTED = False
 
 # Umrechnungsfaktor 100 Pixel = 1 Meter
 METER = 100
 
-# Accelerator
+# Beschleunigungen
 INITIAL_BALL_IMPULSE = 1 * METER
 GRAVITY_STRENGTH = 1
 
-# Window
+# Fenstergrößen
 GAME_WIDTH, UI_WIDTH = 500, 300
 WIDTH, HEIGHT = GAME_WIDTH + UI_WIDTH, 800
 
@@ -32,7 +33,7 @@ GRAVITY = 9.81 * METER * GRAVITY_STRENGTH
 # Delta Time
 dt = 1 / 60
 
-# Colours
+# Farben
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
@@ -41,8 +42,6 @@ BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
 PURPLE = (255, 0, 255)
 CYAN = (0, 255, 255)
-
-GAME_STARTED = False
 
 # Slider
 SLIDER_WIDTH = 280
@@ -61,6 +60,6 @@ DAMPING_FACTOR = 0.99
 # Friction
 ROLLING_FRICTION_COEFFICIENT = 0.01
 
-# Ramp
+# Rampen
 RAMP_ANGLE = -30  # Degrees
 RAMP_LENGTH = 100  # Adjust as necessary

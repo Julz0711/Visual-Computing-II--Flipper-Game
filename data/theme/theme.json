@@ -1,0 +1,45 @@
+{
+  "fonts": {
+    "default": {
+      "name": "NotoSans-Regular",
+      "point_size": 14,
+      "style": "regular",
+      "file": "data/NotoSans-Regular.ttf"
+    }
+  },
+  "ui_element_styles": {
+    "horizontal_slider": {
+      "colours": {
+        "normal_bg": "#FFFFFF",
+        "hovered_bg": "#DDDDDD",
+        "disabled_bg": "#AAAAAA",
+        "normal_border": "#000000",
+        "hovered_border": "#333333",
+        "disabled_border": "#666666",
+        "filled_bar": "#FF0000",
+        "unfilled_bar": "#00FF00"
+      },
+      "misc": {
+        "border_width": 2,
+        "shape": "rectangle",
+        "filled_bar_height": 10,
+        "unfilled_bar_height": 10,
+        "slider_height": 20,
+        "slider_width": 20
+      }
+    },
+    "label": {
+      "colours": {
+        "normal_text": "#FFFFFF",
+        "hovered_text": "#FFFFFF",
+        "disabled_text": "#AAAAAA"
+      },
+      "misc": {
+        "border_width": 0,
+        "shadow_width": 1,
+        "text_horiz_alignment": "center",
+        "text_vert_alignment": "center"
+      }
+    }
+  }
+}
