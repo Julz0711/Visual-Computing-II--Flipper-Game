@@ -8,6 +8,8 @@ import math
 from pygame.locals import *
 from config import *
 import pygame_gui
+from pygame_gui.elements import UIHorizontalSlider, UILabel, UITextBox
+from pygame_gui.core import ObjectID
 
 ###
 ### Initialisierungen ###
@@ -381,7 +383,7 @@ def draw_ball():
     direction_length = 30 * math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
     angle = math.atan2(ball_vel[1], ball_vel[0])
     end_pos = (ball_pos[0] + direction_length * math.cos(angle), ball_pos[1] + direction_length * math.sin(angle))
-    pygame.draw.line(window, RED, (ball_pos[0], ball_pos[1]), end_pos, 2)
+    pygame.draw.line(window, PURPLE, (ball_pos[0], ball_pos[1]), end_pos, 2)
 
 
 # Zeichnet den Flipper an der gegebenen Position und mit dem gegebenen Winkel
@@ -457,21 +459,34 @@ def handle_keys():
 
 # Überprüft, ob die Maus geklickt wurde, und führt entsprechende Aktionen aus
 def handle_mouse():
-    global ball_pos, ball_vel, GAME_STARTED
+    global ball_pos
     if pygame.mouse.get_pressed()[0]:
         mouse_x, mouse_y = pygame.mouse.get_pos()
-        # Startet das Spiel nur, wenn der Klick außerhalb von UI-Elementen erfolgt und das Spiel noch nicht gestartet ist
+        # Setzt nur die Startposition der Kugel
         if mouse_x < GAME_WIDTH and not (initial_impulse_slider.get_abs_rect().collidepoint(mouse_x, mouse_y) or
                                          gravity_strength_slider.get_abs_rect().collidepoint(mouse_x, mouse_y) or
                                          launch_angle_slider.get_abs_rect().collidepoint(mouse_x, mouse_y)):
-            if not GAME_STARTED:
-                angle_rad = math.radians(BALL_ANGLE + 90)
-                ball_vel = [
-                    INITIAL_BALL_IMPULSE * math.cos(angle_rad),
-                    INITIAL_BALL_IMPULSE * math.sin(angle_rad)
-                ]
-                ball_pos = list(pygame.mouse.get_pos())
-                GAME_STARTED = True
+            ball_pos = list(pygame.mouse.get_pos())
+
+
+
+# Event Handler for Buttons
+def handle_buttons(event):
+    global GAME_STARTED, ball_pos, ball_vel
+    if event.ui_element == pause_button:
+        show_controls_popup()
+    elif event.ui_element == reset_button:
+        ball_pos = [GAME_WIDTH // 2, HEIGHT // 4]
+        ball_vel = [0, 0]
+        GAME_STARTED = False
+    elif event.ui_element == play_button:
+        if ball_pos != [GAME_WIDTH // 2, HEIGHT // 4]:  # Ensure ball position is set
+            angle_rad = math.radians(BALL_ANGLE + 90)
+            ball_vel = [
+                INITIAL_BALL_IMPULSE * math.cos(angle_rad),
+                INITIAL_BALL_IMPULSE * math.sin(angle_rad)
+            ]
+            GAME_STARTED = True
 
 
 
@@ -482,68 +497,130 @@ def handle_mouse():
 # Zeichnet die grafische Benutzeroberfläche (GUI) auf das Fenster
 def draw_gui():
     # Zeichnet den Hintergrund des GUI-Bereichs
-    pygame.draw.rect(window, GREY, pygame.Rect(GAME_WIDTH, 0, UI_WIDTH, HEIGHT))
-
-    # Zeigt GUI-Elemente an, einschließlich der aktuellen Position und Geschwindigkeit der Kugel
     position_text = f'X: {ball_pos[0]:.2f}, Y: {ball_pos[1]:.2f}'
-
     speed = math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
-    speed_text = f'Speed: {speed:.2f}'
+    speed_text = f'{speed:.2f}'
 
-    pause_text = "Drücke ESC zum Pausieren"
+    position_value.set_text(position_text)
+    speed_value.set_text(speed_text)
 
-    position_surf = font.render(position_text, True, pygame.Color('white'))
-    speed_surf = font.render(speed_text, True, pygame.Color('white'))
-    pause_surf = font.render(pause_text, True, pygame.Color('yellow'))
+pause_label = UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 14, 10), (UI_WIDTH - 28, 40)),
+    text="Drücke ESC zum Pausieren",
+    manager=manager,
+    object_id=ObjectID(class_id='@label', object_id='#pause_label')
+)
 
-    window.blit(pause_surf, (GAME_WIDTH + 10, 10))
-    window.blit(position_surf, (GAME_WIDTH + 10, 40))
-    window.blit(speed_surf, (GAME_WIDTH + 10, 70))
+position_label = UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 14, 70), (UI_WIDTH - 28, 30)),
+    text="Position",
+    manager=manager,
+    object_id=ObjectID(class_id='@label', object_id='#position_label')
+)
 
+position_value = UITextBox(
+    relative_rect=pygame.Rect((GAME_WIDTH + 12, 100), (UI_WIDTH - 24, 40)),
+    html_text="X: 0.00, Y: 0.00",
+    manager=manager,
+    object_id=ObjectID(class_id='@text_box', object_id='#position_value')
+)
+
+speed_label = UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 14, 150), (UI_WIDTH - 28, 30)),
+    text="Speed",
+    manager=manager,
+    object_id=ObjectID(class_id='@label', object_id='#speed_label')
+)
+
+speed_value = UITextBox(
+    relative_rect=pygame.Rect((GAME_WIDTH + 12, 180), (UI_WIDTH - 24, 40)),
+    html_text="0.00",
+    manager=manager,
+    object_id=ObjectID(class_id='@text_box', object_id='#speed_value')
+)
+
+
+# Beschriftung für die Slider
+ball_settings_label = UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 14, 240), (SLIDER_WIDTH - 8, 50)),
+    text=f"Ball Settings",
+    manager=manager,
+    object_id=ObjectID(class_id='@label', object_id='#ball_label')
+)
 
 # Initialisierung des Sliders für den initialen Impuls
-initial_impulse_slider = pygame_gui.elements.UIHorizontalSlider(
-    relative_rect=pygame.Rect((GAME_WIDTH + 10, 130), (SLIDER_WIDTH, SLIDER_HEIGHT)),
-    start_value=INITIAL_BALL_IMPULSE / METER,  # Adjust to show the value in m/s
+initial_impulse_slider = UIHorizontalSlider(
+    relative_rect=pygame.Rect((GAME_WIDTH + 10, 335), (SLIDER_WIDTH, SLIDER_HEIGHT)),
+    start_value=INITIAL_BALL_IMPULSE / METER,
     value_range=(SLIDER_MIN_VALUE, SLIDER_MAX_VALUE),
-    manager=manager
+    manager=manager,
+    object_id=ObjectID(class_id='@horizontal_slider', object_id='#ii_slider')
 )
 
 # Initialisierung des Sliders für die Schwerkraftstärke
-gravity_strength_slider = pygame_gui.elements.UIHorizontalSlider(
-    relative_rect=pygame.Rect((GAME_WIDTH + 10, 200), (SLIDER_WIDTH, SLIDER_HEIGHT)),
+gravity_strength_slider = UIHorizontalSlider(
+    relative_rect=pygame.Rect((GAME_WIDTH + 10, 425), (SLIDER_WIDTH, SLIDER_HEIGHT)),
     start_value=GRAVITY_STRENGTH,
     value_range=(SLIDER_MIN_VALUE, SLIDER_MAX_VALUE),
-    manager=manager
+    manager=manager,
+    object_id=ObjectID(class_id='@horizontal_slider', object_id='#gs_slider')
 )
 
 # Initialisierung des Sliders für den Abschusswinkel der Kugel
-launch_angle_slider = pygame_gui.elements.UIHorizontalSlider(
-    relative_rect=pygame.Rect((GAME_WIDTH + 10, 270), (SLIDER_WIDTH, SLIDER_HEIGHT)),
+launch_angle_slider = UIHorizontalSlider(
+    relative_rect=pygame.Rect((GAME_WIDTH + 10, 515), (SLIDER_WIDTH, SLIDER_HEIGHT)),
     start_value=BALL_ANGLE,
     value_range=(SLIDER_MIN_ANGLE, SLIDER_MAX_ANGLE),
-    manager=manager
+    manager=manager,
+    object_id=ObjectID(class_id='@horizontal_slider', object_id='#la_slider')
 )
 
 # Beschriftung für den initialen Impuls-Slider
-initial_impulse_label = pygame_gui.elements.UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 10, 100), (SLIDER_WIDTH, 30)),
+initial_impulse_label = UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 14, 300), (SLIDER_WIDTH - 8, 30)),
     text=f"Initial Impulse: {INITIAL_BALL_IMPULSE / METER:.2f} m/s",
-    manager=manager
+    manager=manager,
+    object_id=ObjectID(class_id='@label', object_id='#ii_label')
 )
 
 # Beschriftung für den Schwerkraftstärke-Slider
-gravity_strength_label = pygame_gui.elements.UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 10, 170), (SLIDER_WIDTH, 30)),
-    text=f"Gravity Strength: {GRAVITY / METER / 9.81:.2f}",
-    manager=manager
+gravity_strength_label = UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 14, 390), (SLIDER_WIDTH - 8, 30)),
+    text=f"Gravity Strength: {GRAVITY / METER / 9.81:.2f} m/s",
+    manager=manager,
+    object_id=ObjectID(class_id='@label', object_id='#gs_label')
 )
 
 # Beschriftung für den Abschusswinkel-Slider
-launch_angle_label = pygame_gui.elements.UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 10, 240), (SLIDER_WIDTH, 30)),
+launch_angle_label = UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 14, 480), (SLIDER_WIDTH - 8, 30)),
     text=f"Launch Angle: {BALL_ANGLE:.2f} degrees",
-    manager=manager
+    manager=manager,
+    object_id=ObjectID(class_id='@label', object_id='#la_label')
+)
+
+# Play Button
+play_button = pygame_gui.elements.UIButton(
+    relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH - 8, HEIGHT - 130), (SLIDER_WIDTH - 8, 65)),
+    text="Play",
+    manager=manager,
+    object_id=ObjectID(class_id='button', object_id='#play_button')
+)
+
+# Pause Button
+pause_button = pygame_gui.elements.UIButton(
+    relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH - 8, HEIGHT - 60), (SLIDER_WIDTH / 2 - 4, 50)),
+    text="Pause",
+    manager=manager,
+    object_id=ObjectID(class_id='button', object_id='#pause_button')
+)
+
+# Reset Button
+reset_button = pygame_gui.elements.UIButton(
+    relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH / 2 - 8, HEIGHT - 60), (SLIDER_WIDTH / 2 - 8, 50)),
+    text="Reset",
+    manager=manager,
+    object_id=ObjectID(class_id='button', object_id='#reset_button')
 )
 
 
@@ -620,7 +697,9 @@ def game_loop():
 
             # Slider-Werte werden angewendet
             if event.type == pygame.USEREVENT:
-                if event.user_type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
+                if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                    handle_buttons(event)
+                elif event.user_type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                     if event.ui_element == initial_impulse_slider:
                         INITIAL_BALL_IMPULSE = event.value * METER
                         initial_impulse_label.set_text(f"Initial Impulse: {INITIAL_BALL_IMPULSE / METER:.2f} m/s")
@@ -637,7 +716,9 @@ def game_loop():
  
         manager.update(dt)
         
-        window.fill(BLACK)
+        window.fill(GAME_BG_COLOR, rect=pygame.Rect(0, 0, GAME_WIDTH, HEIGHT))
+        window.fill(GUI_BG_COLOR, rect=pygame.Rect(GAME_WIDTH, 0, UI_WIDTH, HEIGHT))
+
         move_ball()
         draw_ball()
         handle_keys()
