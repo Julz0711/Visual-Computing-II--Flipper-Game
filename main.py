@@ -8,7 +8,7 @@ import math
 from pygame.locals import *
 from config import *
 import pygame_gui
-from pygame_gui.elements import UIHorizontalSlider, UILabel, UITextBox
+from pygame_gui.elements import UIHorizontalSlider, UILabel, UITextBox, UIDropDownMenu, UIButton, UIPanel
 from pygame_gui.core import ObjectID
 
 ###
@@ -181,7 +181,7 @@ def move_ball():
         return
     
     # Default
-    if ball_vel == [0, 0]:
+    if ball_vel == [0, 0] and GAME_STARTED:
         angle_rad = math.radians(BALL_ANGLE + 90)
         ball_vel[0] = INITIAL_BALL_IMPULSE * math.cos(angle_rad)
         ball_vel[1] = INITIAL_BALL_IMPULSE * math.sin(angle_rad)
@@ -427,6 +427,21 @@ def draw_ramps():
     # rechte Rampe
     pygame.draw.line(window, WHITE, ramp_right_start, ramp_right_end, 3)
 
+# Zeichnet einen Indicator vor dem starten des Spiels, wo die Kugel hinfliegen wird
+def draw_initial_trajectory():
+    if not GAME_STARTED:
+        angle_rad = math.radians(BALL_ANGLE + 90)
+        initial_vel = [
+            INITIAL_BALL_IMPULSE * math.cos(angle_rad),
+            INITIAL_BALL_IMPULSE * math.sin(angle_rad)
+        ]
+
+        # Zeichnet eine Linie, die die Richtung und den erwarteten Flug der Kugel anzeigt
+        direction_length = 50 * math.sqrt(initial_vel[0]**2 + initial_vel[1]**2) / 100
+        angle = math.atan2(initial_vel[1], initial_vel[0])
+        end_pos = (ball_pos[0] + direction_length * math.cos(angle), ball_pos[1] + direction_length * math.sin(angle))
+        pygame.draw.line(window, PURPLE, (ball_pos[0], ball_pos[1]), end_pos, 2)
+
 
 
 ###
@@ -460,9 +475,9 @@ def handle_keys():
 # Überprüft, ob die Maus geklickt wurde, und führt entsprechende Aktionen aus
 def handle_mouse():
     global ball_pos
-    if pygame.mouse.get_pressed()[0]:
+    if pygame.mouse.get_pressed()[0] and not GAME_STARTED:
         mouse_x, mouse_y = pygame.mouse.get_pos()
-        # Setzt nur die Startposition der Kugel
+        # Setzt die Startposition der Kugel
         if mouse_x < GAME_WIDTH and not (initial_impulse_slider.get_abs_rect().collidepoint(mouse_x, mouse_y) or
                                          gravity_strength_slider.get_abs_rect().collidepoint(mouse_x, mouse_y) or
                                          launch_angle_slider.get_abs_rect().collidepoint(mouse_x, mouse_y)):
@@ -480,7 +495,7 @@ def handle_buttons(event):
         ball_vel = [0, 0]
         GAME_STARTED = False
     elif event.ui_element == play_button:
-        if ball_pos != [GAME_WIDTH // 2, HEIGHT // 4]:  # Ensure ball position is set
+        if ball_pos != [GAME_WIDTH // 2, HEIGHT // 4]:  
             angle_rad = math.radians(BALL_ANGLE + 90)
             ball_vel = [
                 INITIAL_BALL_IMPULSE * math.cos(angle_rad),
@@ -718,6 +733,9 @@ def game_loop():
         
         window.fill(GAME_BG_COLOR, rect=pygame.Rect(0, 0, GAME_WIDTH, HEIGHT))
         window.fill(GUI_BG_COLOR, rect=pygame.Rect(GAME_WIDTH, 0, UI_WIDTH, HEIGHT))
+
+        if not GAME_STARTED:
+            draw_initial_trajectory()
 
         move_ball()
         draw_ball()
