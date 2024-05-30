@@ -30,6 +30,19 @@ ball_pos = [GAME_WIDTH // 2, HEIGHT // 4]
 ball_vel = [0, 0]
 ball_angular_vel = 0
 ball_angle = 0
+ball_color = 'White'
+
+# Initialiserung des Pause Menu
+is_pause_menu_open = False
+pause_panel = None
+continue_button = None
+quit_button = None 
+
+# GUI Sichtbarkeit
+def set_gui_visibility(visible):
+    initial_impulse_slider.sliding_button.visible = visible
+    gravity_strength_slider.sliding_button.visible = visible
+    launch_angle_slider.sliding_button.visible = visible
 
 # Positionierung der Rampen
 ramp_left_start = (0, HEIGHT - 200)
@@ -377,7 +390,7 @@ def check_ramp_collision():
 # Zeichnet die Kugel an ihrer aktuellen Position auf dem Spielfeld
 def draw_ball():
     # Zeichnet die Kugel
-    pygame.draw.circle(window, WHITE, (int(ball_pos[0]), int(ball_pos[1])), BALL_RADIUS)
+    pygame.draw.circle(window, pygame.Color(ball_color.lower()), (int(ball_pos[0]), int(ball_pos[1])), BALL_RADIUS)
 
     # Zeichnet eine Linie, die die Richtung der Kugelgeschwindigkeit anzeigt
     direction_length = 30 * math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
@@ -487,21 +500,44 @@ def handle_mouse():
 
 # Event Handler for Buttons
 def handle_buttons(event):
-    global GAME_STARTED, ball_pos, ball_vel
-    if event.ui_element == pause_button:
-        show_controls_popup()
-    elif event.ui_element == reset_button:
-        ball_pos = [GAME_WIDTH // 2, HEIGHT // 4]
-        ball_vel = [0, 0]
-        GAME_STARTED = False
-    elif event.ui_element == play_button:
-        if ball_pos != [GAME_WIDTH // 2, HEIGHT // 4]:  
-            angle_rad = math.radians(BALL_ANGLE + 90)
-            ball_vel = [
-                INITIAL_BALL_IMPULSE * math.cos(angle_rad),
-                INITIAL_BALL_IMPULSE * math.sin(angle_rad)
-            ]
-            GAME_STARTED = True
+    global GAME_STARTED, ball_pos, ball_vel, is_pause_menu_open, pause_panel
+
+    if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+        if is_pause_menu_open:
+            is_pause_menu_open = False
+            if pause_panel:
+                pause_panel.kill()
+                pause_panel = None
+                print("Pause panel killed via ESC")
+        else:
+            pause_menu()
+        return
+
+    if event.type == pygame_gui.UI_BUTTON_PRESSED:
+        if event.ui_element == pause_button:
+            pause_menu()
+        elif event.ui_element == reset_button:
+            ball_pos = [GAME_WIDTH // 2, HEIGHT // 4]
+            ball_vel = [0, 0]
+            GAME_STARTED = False
+        elif event.ui_element == play_button:
+            if ball_pos != [GAME_WIDTH // 2, HEIGHT // 4]:  
+                angle_rad = math.radians(BALL_ANGLE + 90)
+                ball_vel = [
+                    INITIAL_BALL_IMPULSE * math.cos(angle_rad),
+                    INITIAL_BALL_IMPULSE * math.sin(angle_rad)
+                ]
+                GAME_STARTED = True
+        elif event.ui_element == continue_button:
+            print("Continue button pressed")
+            is_pause_menu_open = False
+            if pause_panel:
+                pause_panel.kill()
+                pause_panel = None
+                print("Pause panel killed")
+        elif event.ui_element == quit_button:
+            pygame.quit()
+            sys.exit()
 
 
 
@@ -615,7 +651,7 @@ launch_angle_label = UILabel(
 )
 
 # Play Button
-play_button = pygame_gui.elements.UIButton(
+play_button = UIButton(
     relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH - 8, HEIGHT - 130), (SLIDER_WIDTH - 8, 65)),
     text="Play",
     manager=manager,
@@ -623,7 +659,7 @@ play_button = pygame_gui.elements.UIButton(
 )
 
 # Pause Button
-pause_button = pygame_gui.elements.UIButton(
+pause_button = UIButton(
     relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH - 8, HEIGHT - 60), (SLIDER_WIDTH / 2 - 4, 50)),
     text="Pause",
     manager=manager,
@@ -631,7 +667,7 @@ pause_button = pygame_gui.elements.UIButton(
 )
 
 # Reset Button
-reset_button = pygame_gui.elements.UIButton(
+reset_button = UIButton(
     relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH / 2 - 8, HEIGHT - 60), (SLIDER_WIDTH / 2 - 8, 50)),
     text="Reset",
     manager=manager,
@@ -645,50 +681,128 @@ reset_button = pygame_gui.elements.UIButton(
 ###
 
 # Zeigt ein Popup-Fenster mit den Spielsteuerungen an
-def show_controls_popup():
-    popup_font = pygame.font.SysFont(None, 24)
-    popup_text = [
-        "Controls:",
-        "A - Activate left flipper",
-        "D - Activate right flipper",
-        "R - Reset game"
-    ]
+def pause_menu():
+    global is_pause_menu_open, pause_panel, continue_button, quit_button
+    is_pause_menu_open = True
+    set_gui_visibility(False)
 
-    # Initialisierung des Pop-Up-Menüs
-    popup_rect = pygame.Rect(0, 0, 500, 800)
-    popup_surface = pygame.Surface((popup_rect.width, popup_rect.height))
-    popup_surface.fill((25, 25, 25))
+    # Erstellt ein Panel, das das gesamte Fenster abdeckt
+    pause_panel = UIPanel(
+        relative_rect=pygame.Rect(0, 0, WIDTH, HEIGHT),
+        manager=manager
+    )
 
-    # Zeichnet den Text für die Steuerungen
-    for i, line in enumerate(popup_text):
-        text_surf = popup_font.render(line, True, pygame.Color('white'))
-        popup_surface.blit(text_surf, (25, 25 + i * 25))
+    # Header
+    menu_title = UILabel(
+        relative_rect=pygame.Rect((32, 32), (WIDTH, 100)),
+        text=f"Pause Menu",
+        manager=manager,
+        container=pause_panel,
+        object_id=ObjectID(class_id='@label', object_id='#ball_label')
+    )
 
-    # Zeichnet den "Weiter"-Button
-    continue_button_rect = pygame.Rect(25, 150, 150, 50)
-    pygame.draw.rect(popup_surface, (RED), continue_button_rect)
-    continue_button_text = popup_font.render("Continue", True, pygame.Color('white'))
-    popup_surface.blit(continue_button_text, (60, 168))
+    # Fügt das Label für die Steuerungstexte hinzu A - Activate left flippe D - Activate right flippe R - Reset game
+    controls_text = "Controls:"
+
+    controls_label = UILabel(
+        relative_rect=pygame.Rect(48, 150, WIDTH, 30),
+        text=controls_text,
+        manager=manager,
+        container=pause_panel,
+        object_id=ObjectID(class_id='@label', object_id='#controls_label')
+    )
+
+    controls_list = UITextBox(
+        relative_rect=pygame.Rect((48, 190), (WIDTH - 64 - 32, 120)),
+        html_text="",
+        manager=manager,
+        container=pause_panel,
+        object_id=ObjectID(class_id='@text_box', object_id='#controls_list')
+    )
+
+    # Dropdown Menü für die Farbe der Kugel
+    dropdown = UIDropDownMenu(
+        options_list=['White', 'Red', 'Green', 'Blue'],
+        starting_option=ball_color,
+        relative_rect=pygame.Rect(50, 400, 200, 50),
+        manager=manager,
+        container=pause_panel
+    )
+
+    # Vorschau der Kugel
+    ball_preview_label = UILabel(
+        relative_rect=pygame.Rect(300, 300, 100, 100),
+        text="",
+        manager=manager,
+        container=pause_panel,
+        object_id=ObjectID(class_id='@ball_preview', object_id='#ball_preview')
+    )
+
+    # Aktualisiere den Ballvorschau-Look
+    ball_preview_label.image = pygame.Surface((100, 100))
+    ball_preview_label.image.fill(pygame.Color(ball_color.lower()))
+
+    # Funktion zum Aktualisieren der Vorschau der Kugel
+    def update_ball_preview(color):
+        ball_preview_label.image.fill(pygame.Color(color.lower()))
+        global ball_color
+        ball_color = color
+
+    # Fügt den "Fortsetzen"-Button hinzu
+    continue_button = UIButton(
+        relative_rect=pygame.Rect((WIDTH / 2 - 200, HEIGHT - 100), (150, 50)),
+        text="Continue",
+        manager=manager,
+        container=pause_panel
+    )
+
+    # Fügt den "Beenden"-Button hinzu
+    quit_button = UIButton(
+        relative_rect=pygame.Rect((WIDTH / 2 + 50, HEIGHT - 100), (150, 50)),
+        text="Quit",
+        manager=manager,
+        container=pause_panel
+    )
 
     # Aktiviert das Menü
-    while True:
+    is_running = True
+    while is_running:
+        time_delta = clock.tick(60) / 1000.0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return
-                elif event.key == pygame.K_RETURN:
-                    return
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = pygame.mouse.get_pos()
-                if continue_button_rect.collidepoint(mouse_pos):
-                    return
+                if event.key == pygame.K_ESCAPE or event.key == pygame.K_RETURN:
+                    is_running = False
+                    is_pause_menu_open = False
+                    set_gui_visibility(True)
+                    if pause_panel:
+                        pause_panel.kill()
+                        pause_panel = None
+                        print("Pause panel killed via ESC")
+            elif event.type == pygame_gui.UI_BUTTON_PRESSED:
+                if event.ui_element == continue_button:
+                    is_running = False
+                    is_pause_menu_open = False
+                    set_gui_visibility(True)
+                    if pause_panel:
+                        pause_panel.kill()
+                        pause_panel = None
+                        print("Pause panel killed")
+                elif event.ui_element == quit_button:
+                    pygame.quit()
+                    sys.exit()
+            elif event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
+                if event.ui_element == dropdown:
+                    update_ball_preview(event.text)
 
-        window.blit(popup_surface, popup_rect.topleft)
+            manager.process_events(event)
+
+        manager.update(time_delta)
+        window.fill(GAME_BG_COLOR)
+        manager.draw_ui(window)
         pygame.display.flip()
-        clock.tick(60)
 
 
 
@@ -698,37 +812,41 @@ def show_controls_popup():
 
 # Hauptspiel-Schleife, die alle anderen Funktionen aufruft und das Spiel steuert
 def game_loop():
-    global INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE
+    global INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE, is_pause_menu_open, pause_panel
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            # Pause-Menü anzeigen, wenn ESC gedrückt wird
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    show_controls_popup()
 
-            # Slider-Werte werden angewendet
-            if event.type == pygame.USEREVENT:
-                if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
-                    handle_buttons(event)
-                elif event.user_type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
-                    if event.ui_element == initial_impulse_slider:
-                        INITIAL_BALL_IMPULSE = event.value * METER
-                        initial_impulse_label.set_text(f"Initial Impulse: {INITIAL_BALL_IMPULSE / METER:.2f} m/s")
-                    elif event.ui_element == gravity_strength_slider:
-                        GRAVITY_STRENGTH = event.value
-                        GRAVITY = 9.81 * METER * GRAVITY_STRENGTH
-                        gravity_strength_label.set_text(f"Gravity Strength: {GRAVITY/METER/9.81:.2f} m/s")
-                    elif event.ui_element == launch_angle_slider:
-                        BALL_ANGLE = event.value
-                        launch_angle_label.set_text(f"Launch Angle: {BALL_ANGLE} degrees")
+            handle_buttons(event)  # Handle button events, including ESC key press
+            
+            if is_pause_menu_open:
+                manager.process_events(event)
+            else:
+                # Slider-Werte werden angewendet
+                if event.type == pygame.USEREVENT:
+                    if hasattr(event, 'user_type') and event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                        handle_buttons(event)
+                    elif hasattr(event, 'user_type') and event.user_type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
+                        if event.ui_element == initial_impulse_slider:
+                            INITIAL_BALL_IMPULSE = event.value * METER
+                            initial_impulse_label.set_text(f"Initial Impulse: {INITIAL_BALL_IMPULSE / METER:.2f} m/s")
+                        elif event.ui_element == gravity_strength_slider:
+                            GRAVITY_STRENGTH = event.value
+                            GRAVITY = 9.81 * METER * GRAVITY_STRENGTH
+                            gravity_strength_label.set_text(f"Gravity Strength: {GRAVITY/METER/9.81:.2f} m/s")
+                        elif event.ui_element == launch_angle_slider:
+                            BALL_ANGLE = event.value
+                            launch_angle_label.set_text(f"Launch Angle: {BALL_ANGLE} degrees")
 
+                # Mausereignisse nur verarbeiten, wenn das Pause-Menü nicht geöffnet ist
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    handle_mouse()
 
-            manager.process_events(event)
- 
+                manager.process_events(event)
+
         manager.update(dt)
         
         window.fill(GAME_BG_COLOR, rect=pygame.Rect(0, 0, GAME_WIDTH, HEIGHT))
@@ -737,25 +855,26 @@ def game_loop():
         if not GAME_STARTED:
             draw_initial_trajectory()
 
-        move_ball()
-        draw_ball()
-        handle_keys()
-        handle_mouse()
-        check_collision()
-        check_ramp_collision()
-        draw_flipper(left_flipper_pos, left_flipper_angle, False)
-        draw_flipper(right_flipper_pos, right_flipper_angle, True)
-        draw_bumpers()
-        draw_ramps() 
-        draw_gui()
-        draw_particles()
-        update_particles()
+        if not is_pause_menu_open:
+            move_ball()
+            draw_ball()
+            handle_keys()
+            check_collision()
+            check_ramp_collision()
+            draw_flipper(left_flipper_pos, left_flipper_angle, False)
+            draw_flipper(right_flipper_pos, right_flipper_angle, True)
+            draw_bumpers()
+            draw_ramps() 
+            draw_gui()
+            draw_particles()
+            update_particles()
 
         manager.draw_ui(window)
 
         pygame.display.flip()
         pygame.display.set_caption(f"Flippernator3000 - FPS: {clock.get_fps():.2f}")
         clock.tick(60)
+
 
 if __name__ == '__main__':
     # Setzt den Spielstatus auf nicht gestartet

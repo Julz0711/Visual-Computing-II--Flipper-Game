@@ -186,5 +186,33 @@
       "size": "24",
       "bold": "1"
     }
+  },
+
+  "panel": {
+    "colours": {
+      "dark_bg": "#434343",
+      "normal_border": "#999999"
+    },
+    "misc": {
+      "shape": "rectangle",
+      "border_width": "1",
+      "shadow_width": "16"
+    }
+  },
+  "#controls_label": {
+    "colours": {
+      "dark_bg": "#434343",
+      "normal_text": "#f8f8f8",
+      "normal_border": "#221F29"
+    },
+    "font": {
+      "size": "20",
+      "bold": "0",
+      "italic": "0"
+    },
+    "misc": {
+      "text_horiz_alignment": "left",
+      "text_vert_alignment": "top"
+    }
   }
 }
