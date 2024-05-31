@@ -32,17 +32,17 @@
   },
   "#ii_slider.#sliding_button": {
     "colours": {
-      "normal_bg": "#7DFAF2"
+      "normal_bg": "#2afeb7"
     }
   },
   "#gs_slider.#sliding_button": {
     "colours": {
-      "normal_bg": "#7DBEFA"
+      "normal_bg": "#389ebf"
     }
   },
   "#la_slider.#sliding_button": {
     "colours": {
-      "normal_bg": "#9D7DFA"
+      "normal_bg": "#862dc6"
     }
   },
   "label": {
@@ -64,17 +64,17 @@
   },
   "#ii_label": {
     "colours": {
-      "dark_bg": "#7DFAF2"
+      "dark_bg": "#2afeb7"
     }
   },
   "#gs_label": {
     "colours": {
-      "dark_bg": "#7DBEFA"
+      "dark_bg": "#389ebf"
     }
   },
   "#la_label": {
     "colours": {
-      "dark_bg": "#9D7DFA"
+      "dark_bg": "#862dc6"
     }
   },
   "#ball_label": {

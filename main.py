@@ -27,7 +27,7 @@ window = pygame.display.set_mode((WIDTH, HEIGHT))
 manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'data/theme.json')
 
 # Initialisierung der Kugel mit Startposition und Geschwindigkeit
-ball_pos = [GAME_WIDTH // 2, HEIGHT // 4]
+ball_pos = [GAME_WIDTH // 2, BALL_START_Y]
 ball_vel = [0, 0]
 ball_angular_vel = 0
 ball_angle = 0
@@ -62,8 +62,8 @@ right_flipper_angle = 0
 
 # Initialisierung der Bumpers
 bumpers = [
-    {'pos': [100, 300], 'radius': BUMPER_RADIUS, 'color': BLUE, 'active': False, 'timer': 0},
-    {'pos': [400, 450], 'radius': BUMPER_RADIUS, 'color': BLUE, 'active': False, 'timer': 0}
+    {'pos': [100, 300], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR, 'active': False, 'timer': 0},
+    {'pos': [400, 450], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR, 'active': False, 'timer': 0}
 ]
 
 
@@ -397,7 +397,7 @@ def draw_ball():
     direction_length = 30 * math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
     angle = math.atan2(ball_vel[1], ball_vel[0])
     end_pos = (ball_pos[0] + direction_length * math.cos(angle), ball_pos[1] + direction_length * math.sin(angle))
-    pygame.draw.line(window, PURPLE, (ball_pos[0], ball_pos[1]), end_pos, 2)
+    pygame.draw.line(window, RED, (ball_pos[0], ball_pos[1]), end_pos, 2)
 
 
 # Zeichnet den Flipper an der gegebenen Position und mit dem gegebenen Winkel
@@ -410,7 +410,7 @@ def draw_flipper(position, angle, is_right):
     end_y = start_y - FLIPPER_LENGTH * math.sin(math.radians(angle))
 
     # Zeichnet eine Linie, die den Flipper darstellt
-    pygame.draw.line(window, RED, (start_x, start_y), (end_x, end_y), FLIPPER_WIDTH)
+    pygame.draw.line(window, FLIPPER_COLOUR, (start_x, start_y), (end_x, end_y), FLIPPER_WIDTH)
 
 
 # Zeichnet alle Bumper, basierend auf ihrem Aktivierungsstatus
@@ -454,7 +454,7 @@ def draw_initial_trajectory():
         direction_length = 50 * math.sqrt(initial_vel[0]**2 + initial_vel[1]**2) / 100
         angle = math.atan2(initial_vel[1], initial_vel[0])
         end_pos = (ball_pos[0] + direction_length * math.cos(angle), ball_pos[1] + direction_length * math.sin(angle))
-        pygame.draw.line(window, PURPLE, (ball_pos[0], ball_pos[1]), end_pos, 2)
+        pygame.draw.line(window, RED, (ball_pos[0], ball_pos[1]), end_pos, 2)
 
 
 
@@ -481,7 +481,7 @@ def handle_keys():
 
     # Setzt das Spiel zurück, wenn die Taste 'R' gedrückt wird
     if keys[pygame.K_r]:
-        ball_pos = [GAME_WIDTH // 2, HEIGHT // 4]
+        ball_pos = [GAME_WIDTH // 2, BALL_START_Y]
         ball_vel = [0, 0]
         GAME_STARTED = False
 
@@ -517,11 +517,11 @@ def handle_buttons(event):
         if event.ui_element == pause_button:
             pause_menu()
         elif event.ui_element == reset_button:
-            ball_pos = [GAME_WIDTH // 2, HEIGHT // 4]
+            ball_pos = [GAME_WIDTH // 2, BALL_START_Y]
             ball_vel = [0, 0]
             GAME_STARTED = False
         elif event.ui_element == play_button:
-            if ball_pos != [GAME_WIDTH // 2, HEIGHT // 4]:  
+            if ball_pos != [GAME_WIDTH // 2, BALL_START_Y]:  
                 angle_rad = math.radians(BALL_ANGLE + 90)
                 ball_vel = [
                     INITIAL_BALL_IMPULSE * math.cos(angle_rad),
@@ -542,6 +542,15 @@ def handle_buttons(event):
 ###
 ### Graphical User Interface (GUI) ###
 ###
+
+# Tooltip zum Ball platzieren
+if not GAME_STARTED:
+    pregame_label = UILabel(
+        relative_rect=pygame.Rect((GAME_WIDTH / 2 - 150, HEIGHT - 100), (300, 50)),
+        text="Please place the ball",
+        manager=manager,
+        object_id=ObjectID(class_id='@label', object_id='#ball_label')
+    )
 
 # Zeichnet die grafische Benutzeroberfläche (GUI) auf das Fenster
 def draw_gui():
