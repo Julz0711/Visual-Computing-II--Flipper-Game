@@ -19,12 +19,18 @@ from pygame_gui.core import ObjectID
 # Initialisierung von Pygame für Grafik und Schriftarten
 pygame.init()
 pygame.font.init()
+pygame.mixer.init()
 font = pygame.font.SysFont(None, 24)
 clock = pygame.time.Clock()
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 
 # Initialisiere den UI Manager und lade das Theme aus der theme.json-Datei
 manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'data/theme.json')
+
+# Hintergrundmusik laden und abspielen
+pygame.mixer.music.load('data/pinbolchill.mp3')
+pygame.mixer.music.set_volume(0.5)  # Setzt die Anfangslautstärke auf 50%
+pygame.mixer.music.play(-1)  # Wiederholt die Musik endlos
 
 # Initialisierung der Kugel mit Startposition und Geschwindigkeit
 ball_pos = [GAME_WIDTH // 2, BALL_START_Y]
@@ -38,6 +44,7 @@ is_pause_menu_open = False
 pause_panel = None
 continue_button = None
 quit_button = None 
+pregame_label = None
 
 # GUI Sichtbarkeit
 def set_gui_visibility(visible):
@@ -543,15 +550,6 @@ def handle_buttons(event):
 ### Graphical User Interface (GUI) ###
 ###
 
-# Tooltip zum Ball platzieren
-if not GAME_STARTED:
-    pregame_label = UILabel(
-        relative_rect=pygame.Rect((GAME_WIDTH / 2 - 150, HEIGHT - 100), (300, 50)),
-        text="Please place the ball",
-        manager=manager,
-        object_id=ObjectID(class_id='@label', object_id='#ball_label')
-    )
-
 # Zeichnet die grafische Benutzeroberfläche (GUI) auf das Fenster
 def draw_gui():
     # Zeichnet den Hintergrund des GUI-Bereichs
@@ -599,62 +597,63 @@ speed_value = UITextBox(
 
 
 # Beschriftung für die Slider
-ball_settings_label = UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 14, 240), (SLIDER_WIDTH - 8, 50)),
-    text=f"Ball Settings",
+
+ball_settings_label = UITextBox(
+    relative_rect=pygame.Rect((GAME_WIDTH + 14, 240), (SLIDER_WIDTH - 8, 310)),
+    html_text="Ball Settings:",
     manager=manager,
-    object_id=ObjectID(class_id='@label', object_id='#ball_label')
+    object_id=ObjectID(class_id='@text_box', object_id='#ball_label')
+)
+
+# Beschriftung für den initialen Impuls-Slider
+initial_impulse_label = UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 26, 300), (SLIDER_WIDTH - 8, 30)),
+    text=f"Initial Impulse: {INITIAL_BALL_IMPULSE / METER:.2f} m/s",
+    manager=manager,
+    object_id=ObjectID(class_id='@label', object_id='#ii_label')
 )
 
 # Initialisierung des Sliders für den initialen Impuls
 initial_impulse_slider = UIHorizontalSlider(
-    relative_rect=pygame.Rect((GAME_WIDTH + 10, 335), (SLIDER_WIDTH, SLIDER_HEIGHT)),
+    relative_rect=pygame.Rect((GAME_WIDTH + 24, 330), (SLIDER_WIDTH - 28, SLIDER_HEIGHT)),
     start_value=INITIAL_BALL_IMPULSE / METER,
     value_range=(SLIDER_MIN_VALUE, SLIDER_MAX_VALUE),
     manager=manager,
     object_id=ObjectID(class_id='@horizontal_slider', object_id='#ii_slider')
 )
 
+# Beschriftung für den Schwerkraftstärke-Slider
+gravity_strength_label = UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 26, 380), (SLIDER_WIDTH - 8, 30)),
+    text=f"Gravity Strength: {GRAVITY / METER / 9.81:.2f}",
+    manager=manager,
+    object_id=ObjectID(class_id='@label', object_id='#gs_label')
+)
+
 # Initialisierung des Sliders für die Schwerkraftstärke
 gravity_strength_slider = UIHorizontalSlider(
-    relative_rect=pygame.Rect((GAME_WIDTH + 10, 425), (SLIDER_WIDTH, SLIDER_HEIGHT)),
+    relative_rect=pygame.Rect((GAME_WIDTH + 24, 410), (SLIDER_WIDTH - 28, SLIDER_HEIGHT)),
     start_value=GRAVITY_STRENGTH,
     value_range=(SLIDER_MIN_VALUE, SLIDER_MAX_VALUE),
     manager=manager,
     object_id=ObjectID(class_id='@horizontal_slider', object_id='#gs_slider')
 )
 
+# Beschriftung für den Abschusswinkel-Slider
+launch_angle_label = UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 26, 460), (SLIDER_WIDTH - 8, 30)),
+    text=f"Launch Angle: {BALL_ANGLE:.2f} degrees",
+    manager=manager,
+    object_id=ObjectID(class_id='@label', object_id='#la_label')
+)
+
 # Initialisierung des Sliders für den Abschusswinkel der Kugel
 launch_angle_slider = UIHorizontalSlider(
-    relative_rect=pygame.Rect((GAME_WIDTH + 10, 515), (SLIDER_WIDTH, SLIDER_HEIGHT)),
+    relative_rect=pygame.Rect((GAME_WIDTH + 24, 490), (SLIDER_WIDTH - 28, SLIDER_HEIGHT)),
     start_value=BALL_ANGLE,
     value_range=(SLIDER_MIN_ANGLE, SLIDER_MAX_ANGLE),
     manager=manager,
     object_id=ObjectID(class_id='@horizontal_slider', object_id='#la_slider')
-)
-
-# Beschriftung für den initialen Impuls-Slider
-initial_impulse_label = UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 14, 300), (SLIDER_WIDTH - 8, 30)),
-    text=f"Initial Impulse: {INITIAL_BALL_IMPULSE / METER:.2f} m/s",
-    manager=manager,
-    object_id=ObjectID(class_id='@label', object_id='#ii_label')
-)
-
-# Beschriftung für den Schwerkraftstärke-Slider
-gravity_strength_label = UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 14, 390), (SLIDER_WIDTH - 8, 30)),
-    text=f"Gravity Strength: {GRAVITY / METER / 9.81:.2f}",
-    manager=manager,
-    object_id=ObjectID(class_id='@label', object_id='#gs_label')
-)
-
-# Beschriftung für den Abschusswinkel-Slider
-launch_angle_label = UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 14, 480), (SLIDER_WIDTH - 8, 30)),
-    text=f"Launch Angle: {BALL_ANGLE:.2f} degrees",
-    manager=manager,
-    object_id=ObjectID(class_id='@label', object_id='#la_label')
 )
 
 # Play Button
@@ -689,7 +688,7 @@ reset_button = UIButton(
 
 # Zeigt ein Popup-Fenster mit den Spielsteuerungen an
 def pause_menu():
-    global is_pause_menu_open, pause_panel, continue_button, quit_button
+    global is_pause_menu_open, pause_panel, continue_button, quit_button, volume_slider, volume_label, volume_value_label
     is_pause_menu_open = True
     set_gui_visibility(False)
 
@@ -707,15 +706,16 @@ def pause_menu():
         text=f"Pause Menu",
         manager=manager,
         container=pause_panel,
-        object_id=ObjectID(class_id='@label', object_id='#ball_label')
+        object_id=ObjectID(class_id='@label', object_id='#menu_title')
     )
 
     controls_text = "Controls:"
     dropdown_text = "Ball Colour:"
+    volume_text = "Volume:" + str(int(pygame.mixer.music.get_volume() * 100))
 
     # Spielsteuerung
     controls_label = UILabel(
-        relative_rect=pygame.Rect(padding, 150, WIDTH, 30),
+        relative_rect=pygame.Rect(padding + 2, 150, WIDTH, 30),
         text=controls_text,
         manager=manager,
         container=pause_panel,
@@ -732,7 +732,7 @@ def pause_menu():
     
     # Dropdown Menü für die Farbe der Kugel
     dropdown_label = UILabel(
-        relative_rect=pygame.Rect(padding, 400, WIDTH, 30),
+        relative_rect=pygame.Rect(padding + 2, 400, WIDTH, 30),
         text=dropdown_text,
         manager=manager,
         container=pause_panel,
@@ -747,7 +747,8 @@ def pause_menu():
         starting_option=ball_color,
         relative_rect=pygame.Rect(padding, 440, dropdown_width, 50),
         manager=manager,
-        container=pause_panel
+        container=pause_panel,
+        object_id=ObjectID(class_id='@dropdown', object_id='#ball_dropdown')
     )
 
     # Funktion zum Aktualisieren der Vorschau der Kugel
@@ -764,7 +765,7 @@ def pause_menu():
 
     # Vorschau der Kugel
     ball_preview_label = UILabel(
-        relative_rect=pygame.Rect(padding + dropdown_width + 24, 440, ball_preview_width, ball_preview_width),
+        relative_rect=pygame.Rect(padding + dropdown_width + 28, 440, ball_preview_width, ball_preview_width),
         text="",
         manager=manager,
         container=pause_panel,
@@ -774,6 +775,31 @@ def pause_menu():
     # Initiale runde Kugelvorschau zeichnen
     update_ball_preview(ball_color)
 
+    # Volume-Slider hinzufügen
+    volume_label = UILabel(
+        relative_rect=pygame.Rect(padding + 2, 520, 200, 30),
+        text="Volume:",
+        manager=manager,
+        container=pause_panel,
+        object_id=ObjectID(class_id='@label', object_id='#menu_label')
+    )
+
+    volume_value_label = UILabel(
+        relative_rect=pygame.Rect(dropdown_width + padding + 28, 562, 50, SLIDER_HEIGHT + 12 - 4),
+        text=str(int(pygame.mixer.music.get_volume() * 100)),
+        manager=manager,
+        container=pause_panel,
+        object_id=ObjectID(class_id='@label', object_id='#volume_value')
+    )
+
+    volume_slider = UIHorizontalSlider(
+        relative_rect=pygame.Rect(padding, 560, dropdown_width, SLIDER_HEIGHT + 12),
+        start_value=pygame.mixer.music.get_volume() * 100,
+        value_range=(0, 100),
+        manager=manager,
+        container=pause_panel,
+        object_id=ObjectID(class_id='@horizontal_slider', object_id='#volume_slider')
+    )
 
     # Fügt den "Fortsetzen"-Button hinzu
     continue_button = UIButton(
@@ -823,6 +849,11 @@ def pause_menu():
             elif event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
                 if event.ui_element == dropdown:
                     update_ball_preview(event.text)
+            elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
+                if event.ui_element == volume_slider:
+                    volume = event.value / 100
+                    pygame.mixer.music.set_volume(volume)
+                    volume_value_label.set_text(str(int(volume * 100)))
 
             manager.process_events(event)
 
@@ -839,7 +870,7 @@ def pause_menu():
 
 # Hauptspiel-Schleife, die alle anderen Funktionen aufruft und das Spiel steuert
 def game_loop():
-    global INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE, is_pause_menu_open, pause_panel
+    global INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE, is_pause_menu_open, pause_panel, pregame_label
 
     while True:
         for event in pygame.event.get():
@@ -880,7 +911,18 @@ def game_loop():
         window.fill(GUI_BG_COLOR, rect=pygame.Rect(GAME_WIDTH, 0, UI_WIDTH, HEIGHT))
 
         if not GAME_STARTED:
+            if pregame_label is None:
+                pregame_label = UILabel(
+                    relative_rect=pygame.Rect((GAME_WIDTH / 2 - 150, HEIGHT - 100), (300, 50)),
+                    text="Please place the ball",
+                    manager=manager,
+                    object_id=ObjectID(class_id='@label', object_id='#pregame_label')
+                )
             draw_initial_trajectory()
+        else:
+            if pregame_label is not None:
+                pregame_label.kill()
+                pregame_label = None
 
         if not is_pause_menu_open:
             move_ball()
