@@ -11,6 +11,7 @@ import pygame_gui
 import pygame_gui.data
 from pygame_gui.elements import UIHorizontalSlider, UILabel, UITextBox, UIDropDownMenu, UIButton, UIPanel
 from pygame_gui.core import ObjectID
+from endgame import end_game_screen
 
 ###
 ### Initialisierungen ###
@@ -29,8 +30,8 @@ manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'data/theme.json')
 
 # Hintergrundmusik laden und abspielen
 pygame.mixer.music.load('data/pinbolchill.mp3')
-pygame.mixer.music.set_volume(0.5)  # Setzt die Anfangslautstärke auf 50%
-pygame.mixer.music.play(-1)  # Wiederholt die Musik endlos
+pygame.mixer.music.set_volume(0.1)
+pygame.mixer.music.play(-1) 
 
 # Initialisierung der Kugel mit Startposition und Geschwindigkeit
 ball_pos = [GAME_WIDTH // 2, BALL_START_Y]
@@ -53,25 +54,69 @@ def set_gui_visibility(visible):
     launch_angle_slider.sliding_button.visible = visible
 
 # Positionierung der Rampen
-ramp_left_start = (0, HEIGHT - 200)
+ramp_left_start = (0, HEIGHT - 300)
 ramp_left_end = (ramp_left_start[0] + RAMP_LENGTH * math.cos(math.radians(RAMP_ANGLE)),
                  ramp_left_start[1] - RAMP_LENGTH * math.sin(math.radians(RAMP_ANGLE)))
 
-ramp_right_start = (GAME_WIDTH, HEIGHT - 200)
+ramp_right_start = (GAME_WIDTH, HEIGHT - 300)
 ramp_right_end = (ramp_right_start[0] - RAMP_LENGTH * math.cos(math.radians(RAMP_ANGLE)),
                   ramp_right_start[1] - RAMP_LENGTH * math.sin(math.radians(RAMP_ANGLE)))
 
 # Positionierung der Flipper
 left_flipper_pos = ramp_left_end
 right_flipper_pos = ramp_right_end
-left_flipper_angle = 0
-right_flipper_angle = 0
+left_flipper_angle = -30
+right_flipper_angle = -30
+left_flipper_active = False
+right_flipper_active = False
+left_flipper_color = FLIPPER_COLOUR
+right_flipper_color = FLIPPER_COLOUR
 
 # Initialisierung der Bumpers
 bumpers = [
-    {'pos': [100, 300], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR, 'active': False, 'timer': 0},
-    {'pos': [400, 450], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR, 'active': False, 'timer': 0}
+    {'pos': [175, 450], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR, 'active': False, 'timer': 0},
+    {'pos': [GAME_WIDTH - 175, 450], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR, 'active': False, 'timer': 0},
+    {'pos': [GAME_WIDTH / 2, 350], 'radius': BUMPER_RADIUS * 1.5, 'color': BUMPER_COLOUR, 'active': False, 'timer': 0}
 ]
+
+
+###
+### Ramps
+###
+
+class Ramp:
+    def __init__(self, start_pos, angle, length):
+        self.start_pos = start_pos
+        self.angle = angle
+        self.length = length
+        self.end_pos = (
+            start_pos[0] + length * math.cos(math.radians(angle)),
+            start_pos[1] - length * math.sin(math.radians(angle))
+        )
+
+    def draw(self, window, color=WHITE):
+        pygame.draw.line(window, color, self.start_pos, self.end_pos, FLIPPER_WIDTH)
+
+    def check_collision(self, ball_pos, ball_vel):
+        if point_line_distance(ball_pos, self.start_pos, self.end_pos) <= BALL_RADIUS:
+            reflect_ball(self.start_pos, self.end_pos)
+
+
+# Initialize ramps
+ramps = [
+    # Flipper Rampen
+    Ramp((0, HEIGHT - 300), RAMP_ANGLE, RAMP_LENGTH),
+    Ramp((GAME_WIDTH, HEIGHT - 300), 180 - RAMP_ANGLE, RAMP_LENGTH),
+    # Spielfeld Rampen
+    Ramp((125, 600), 120, 150),
+    Ramp((GAME_WIDTH - 125, 600), 60, 150),
+    Ramp((50, 470), 90, 250),
+    Ramp((GAME_WIDTH - 50, 470), 90, 250),
+    Ramp((75, 150), -30, 150),
+    Ramp((GAME_WIDTH - 75, 150), -150, 150),
+    # Ramp((GAME_WIDTH / 2 - 100, 400), 0, 200)
+]
+
 
 
 ###
@@ -81,7 +126,7 @@ bumpers = [
 particles = []
 
 # Fügt Partikel an einer gegebenen Position hinzu
-def add_particles(pos):
+def add_particles(pos, color=None):
     for _ in range(20): 
         particles.append({
             # Position des Partikels
@@ -91,9 +136,13 @@ def add_particles(pos):
             # Lebensdauer des Partikels
             'timer': random.randint(10, 20),
             # Zufällige Farbe des Partikels
-            'color': random.choice([RED, GREEN, BLUE, PURPLE, CYAN, WHITE])
+            'color': color if color else random.choice([RED, GREEN, BLUE, PURPLE, CYAN, WHITE])
         })
 
+# Fügt spezielle Partikel für die Flipper hinzu
+def add_flipper_particles(pos):
+    flipper_color = (42, 254, 183)
+    add_particles(pos, flipper_color)
 
 # Aktualisiert die Position und den Timer der Partikel
 def update_particles():
@@ -152,10 +201,10 @@ def reflect_ball_velocity(ball_pos, ball_vel, bumper_pos, bumper_radius):
 
 
 # Reflektiert die Kugel bei Kollision mit einer Linie (Flipper oder Rampe)
-def reflect_ball(start, end):
-    global ball_angular_vel
+def reflect_ball(start, end, is_flipper=False, flipper_velocity=0):
+    global ball_pos, ball_vel, ball_angular_vel
 
-    # Berechnet den Normalenvektor der Linie
+    # Calculate the normal vector of the line
     normal = get_line_normal(start, end)
     midpoint = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
     ball_to_midpoint = (midpoint[0] - ball_pos[0], midpoint[1] - ball_pos[1])
@@ -165,15 +214,21 @@ def reflect_ball(start, end):
 
     ball_vel[0], ball_vel[1] = reflect(ball_vel, normal)
 
-    # Wendet Drehmoment basierend auf der Kollision an
+    # Apply torque based on the collision
     collision_vector = [ball_pos[0] - midpoint[0], ball_pos[1] - midpoint[1]]
     torque = (collision_vector[0] * ball_vel[1] - collision_vector[1] * ball_vel[0]) / (BALL_RADIUS ** 2)
     ball_angular_vel += torque
 
-    # Stellt sicher, dass die Kugel nicht zu weit in das Objekt eindringt
+    # Ensure the ball does not penetrate the object too much
     while point_line_distance(ball_pos, start, end) <= BALL_RADIUS:
-        ball_pos[0] += normal[0] * 0.1
-        ball_pos[1] += normal[1] * 0.1
+        ball_pos = [ball_pos[0] + normal[0] * 0.1, ball_pos[1] + normal[1] * 0.1]
+
+    # Apply additional impulse if colliding with a flipper
+    if is_flipper:
+        impulse = flipper_velocity * FLIPPER_IMPULSE
+        ball_vel[0] += normal[0] * impulse
+        ball_vel[1] += normal[1] * impulse
+        add_flipper_particles(ball_pos)
 
 
 # Reflektiert eine gegebene Geschwindigkeit an einer Fläche mit gegebenem Normalenvektor
@@ -211,8 +266,8 @@ def move_ball():
     ball_vel[1] += GRAVITY * dt
 
     # Aktualisiert die Position der Kugel
-    ball_pos[0] += ball_vel[0] * dt
-    ball_pos[1] += ball_vel[1] * dt
+    ball_pos[0] += ball_vel[0] * dt + 0.5 * DAMPING_FACTOR * dt**2
+    ball_pos[1] += ball_vel[1] * dt + 0.5 * GRAVITY * DAMPING_FACTOR * dt**2
 
     # Aktualisiert die Winkelposition
     ball_angle += ball_angular_vel * dt
@@ -240,26 +295,13 @@ def move_ball():
             reflect_ball_velocity(ball_pos, ball_vel, bumper['pos'], bumper['radius'])
 
     # Überprüft, ob die Kugel auf den Flippern rollt
-    check_ball_on_flipper()
+    # check_ball_on_flipper()
 
 
 
 ###
 ### Kollisionen ###
 ###
-
-# Überprüft, ob die Kugel auf einem der Flipper rollt
-def check_ball_on_flipper():
-    for flipper_pos, angle, is_right in [(left_flipper_pos, left_flipper_angle, False), (right_flipper_pos, right_flipper_angle, True)]:
-        start_x, start_y = flipper_pos
-        end_x = start_x + FLIPPER_LENGTH * math.cos(math.radians(angle)) * (-1 if is_right else 1)
-        end_y = start_y - FLIPPER_LENGTH * math.sin(math.radians(angle))
-
-        # Überprüft, ob die Kugel auf dem Flipper ist
-        if is_ball_on_flipper(ball_pos, (start_x, start_y), (end_x, end_y)):
-            # Wendet die Physik des Rollens an
-            apply_flipper_physics(ball_pos, ball_vel, (start_x, start_y), (end_x, end_y))
-
 
 # Überprüft, ob die Kugel auf dem Flipper ist, indem der Abstand zum Flipper berechnet wird
 def is_ball_on_flipper(ball_pos, flipper_start, flipper_end):
@@ -289,27 +331,6 @@ def apply_flipper_physics(ball_pos, ball_vel, flipper_start, flipper_end):
         ball_pos[1] -= normal[1] * (dist_to_flipper - BALL_RADIUS)
 
 
-# Prüft, ob zwei Segmente (p1-p2 und p3-p4) sich schneiden
-def segment_intersection(p1, p2, p3, p4):
-    # Berechnet die Differenzen der Koordinaten
-    dx1 = p2[0] - p1[0]
-    dy1 = p2[1] - p1[1]
-    dx2 = p4[0] - p3[0]
-    dy2 = p4[1] - p3[1]
-    delta = dx2 * dy1 - dy2 * dx1
-
-    # Parallele Linien haben keine Schnittpunkte
-    if delta == 0:  
-        return False
-    
-    # Berechnet die Parameter s und t für die Schnittpunkte
-    s = (dx1 * (p3[1] - p1[1]) + dy1 * (p1[0] - p3[0])) / delta
-    t = (dx2 * (p1[1] - p3[1]) + dy2 * (p3[0] - p1[0])) / -delta
-
-    # Prüft, ob die Schnittpunkte innerhalb der Segmente liegen
-    return (0 <= s <= 1) and (0 <= t <= 1)
-
-
 # Berechnet den Normalenvektor einer Linie, die durch zwei Punkte definiert ist
 def get_line_normal(start, end):
     # Berechnet die Differenzen der Koordinaten
@@ -324,29 +345,55 @@ def get_line_normal(start, end):
     return (normal[0] / length, normal[1] / length)
 
 
+def check_continuous_collision(ball_pos, ball_vel, flipper_start, flipper_end):
+    # Calculate the number of steps based on the speed of the ball
+    steps = int(math.hypot(ball_vel[0], ball_vel[1]) / BALL_RADIUS)
+    steps = max(steps, 1)  # Ensure at least one step
+
+    for i in range(steps):
+        # Calculate the interpolated position of the ball
+        interpolated_pos = (
+            ball_pos[0] + ball_vel[0] * (i / steps) * dt,
+            ball_pos[1] + ball_vel[1] * (i / steps) * dt
+        )
+
+        # Check for collision at this interpolated position
+        if point_line_distance(interpolated_pos, flipper_start, flipper_end) <= BALL_RADIUS:
+            return True, interpolated_pos
+
+    return False, ball_pos
+
+
 # Überprüft Kollisionen der Kugel mit den Flippern und Spielfeldgrenzen
 def check_collision():
     global ball_pos, ball_vel
 
-    # Überprüft Kollisionen mit den Flippern
-    for flipper_pos, angle, is_right in [(left_flipper_pos, left_flipper_angle, False), (right_flipper_pos, right_flipper_angle, True)]:
+    # Check for collisions with the flippers
+    for flipper_pos, angle, is_right, flipper_active, flipper_velocity in [
+        (left_flipper_pos, left_flipper_angle, False, left_flipper_active, FLIPPER_ANGLE_STEP if left_flipper_active else 0),
+        (right_flipper_pos, right_flipper_angle, True, right_flipper_active, FLIPPER_ANGLE_STEP if right_flipper_active else 0)]:
+
         start_x, start_y = flipper_pos
         end_x = start_x + FLIPPER_LENGTH * math.cos(math.radians(angle)) * (-1 if is_right else 1)
         end_y = start_y - FLIPPER_LENGTH * math.sin(math.radians(angle))
 
         flipper_start = (start_x, start_y)
         flipper_end = (end_x, end_y)
-        
-        if point_line_distance(ball_pos, flipper_start, flipper_end) <= BALL_RADIUS:
-            reflect_ball(flipper_start, flipper_end)
+
+        collision, collision_pos = check_continuous_collision(ball_pos, ball_vel, flipper_start, flipper_end)
+        if collision:
+            ball_pos = collision_pos  # Update ball position to the collision point
+            reflect_ball(flipper_start, flipper_end, is_flipper=True, flipper_velocity=flipper_velocity)
             break
-    
-    # Überprüft Kollisionen mit den Spielfeldgrenzen
+
+    # Check for collisions with the playfield boundaries
     if ball_pos[0] <= BALL_RADIUS or ball_pos[0] >= GAME_WIDTH - BALL_RADIUS:
         ball_vel[0] = -ball_vel[0]
 
     if ball_pos[1] <= BALL_RADIUS or ball_pos[1] >= HEIGHT - BALL_RADIUS:
         ball_vel[1] = -ball_vel[1]
+
+
 
 
 # Berechnet den Abstand eines Punktes von einer Linie, definiert durch zwei Punkte
@@ -379,15 +426,11 @@ def point_line_distance(point, start, end):
     return dist
 
 
-# Überprüft Kollisionen der Kugel mit den Rampen
+# Check collisions with all ramps
 def check_ramp_collision():
     global ball_pos, ball_vel
-
-    # Durchläuft alle Rampen und überprüft, ob die Kugel eine Kollision hat
-    for ramp_start, ramp_end in [(ramp_left_start, ramp_left_end), (ramp_right_start, ramp_right_end)]:
-        if point_line_distance(ball_pos, ramp_start, ramp_end) <= BALL_RADIUS:
-            reflect_ball(ramp_start, ramp_end)
-            break
+    for ramp in ramps:
+        ramp.check_collision(ball_pos, ball_vel)
 
 
 
@@ -408,7 +451,7 @@ def draw_ball():
 
 
 # Zeichnet den Flipper an der gegebenen Position und mit dem gegebenen Winkel
-def draw_flipper(position, angle, is_right):
+def draw_flipper(position, angle, is_right, color):
     # Berechnet die Start- und Endpunkte des Flippers basierend auf seiner Position, dem Winkel und der Ausrichtung
     start_x, start_y = position
 
@@ -417,7 +460,8 @@ def draw_flipper(position, angle, is_right):
     end_y = start_y - FLIPPER_LENGTH * math.sin(math.radians(angle))
 
     # Zeichnet eine Linie, die den Flipper darstellt
-    pygame.draw.line(window, FLIPPER_COLOUR, (start_x, start_y), (end_x, end_y), FLIPPER_WIDTH)
+    pygame.draw.line(window, color, (start_x, start_y), (end_x, end_y), FLIPPER_WIDTH)
+
 
 
 # Zeichnet alle Bumper, basierend auf ihrem Aktivierungsstatus
@@ -443,10 +487,14 @@ def draw_bumpers():
 
 # Zeichnet die Rampen auf das Spielfeld
 def draw_ramps():
-    # linke Rampe
-    pygame.draw.line(window, WHITE, ramp_left_start, ramp_left_end, 3)
-    # rechte Rampe
-    pygame.draw.line(window, WHITE, ramp_right_start, ramp_right_end, 3)
+    for ramp in ramps:
+        ramp.draw(window)
+
+
+# Draw the separator line
+def draw_separator():
+    pygame.draw.rect(window, SEPARATOR_COLOR, (SEPARATOR_POS, 0, SEPARATOR_WIDTH, HEIGHT))
+
 
 # Zeichnet einen Indicator vor dem starten des Spiels, wo die Kugel hinfliegen wird
 def draw_initial_trajectory():
@@ -466,31 +514,67 @@ def draw_initial_trajectory():
 
 
 ###
+### Flipper Animation
+###
+
+# Target angles for the flippers
+left_flipper_target_angle = -30
+right_flipper_target_angle = -30
+
+# Update flippers to animate their movement
+def update_flippers():
+    global left_flipper_angle, right_flipper_angle
+
+    # Update left flipper angle
+    if left_flipper_angle < left_flipper_target_angle:
+        left_flipper_angle = min(left_flipper_angle + FLIPPER_ANGLE_STEP, left_flipper_target_angle)
+    elif left_flipper_angle > left_flipper_target_angle:
+        left_flipper_angle = max(left_flipper_angle - FLIPPER_ANGLE_STEP, left_flipper_target_angle)
+
+    # Update right flipper angle
+    if right_flipper_angle < right_flipper_target_angle:
+        right_flipper_angle = min(right_flipper_angle + FLIPPER_ANGLE_STEP, right_flipper_target_angle)
+    elif right_flipper_angle > right_flipper_target_angle:
+        right_flipper_angle = max(right_flipper_angle - FLIPPER_ANGLE_STEP, right_flipper_target_angle)
+
+
+###
 ### Event Handler ###
 ###
 
 # Überprüft, welche Tasten gedrückt wurden und führt entsprechende Aktionen aus.
 def handle_keys():
-    global left_flipper_angle, right_flipper_angle, ball_pos, ball_vel, GAME_STARTED
+    global left_flipper_target_angle, right_flipper_target_angle, left_flipper_active, right_flipper_active, left_flipper_color, right_flipper_color, ball_pos, ball_vel, GAME_STARTED
     keys = pygame.key.get_pressed()
 
-    # Bewegt den linken Flipper nach oben, wenn die Taste 'A' gedrückt wird
+    # Left flipper
     if keys[pygame.K_a]:
-        left_flipper_angle = 30
+        if not left_flipper_active:
+            left_flipper_target_angle = FLIPPER_MAX_ANGLE
+            left_flipper_active = True
+            left_flipper_color = ACTIVE_FLIPPER_COLOUR  # Change color
     else:
-        left_flipper_angle = 0
+        left_flipper_target_angle = -30
+        left_flipper_active = False
+        left_flipper_color = FLIPPER_COLOUR  # Reset color
 
-    # Bewegt den rechten Flipper nach oben, wenn die Taste 'D' gedrückt wird
+    # Right flipper
     if keys[pygame.K_d]:
-        right_flipper_angle = 30
+        if not right_flipper_active:
+            right_flipper_target_angle = FLIPPER_MAX_ANGLE
+            right_flipper_active = True
+            right_flipper_color = ACTIVE_FLIPPER_COLOUR  # Change color
     else:
-        right_flipper_angle = 0
+        right_flipper_target_angle = -30
+        right_flipper_active = False
+        right_flipper_color = FLIPPER_COLOUR  # Reset color
 
-    # Setzt das Spiel zurück, wenn die Taste 'R' gedrückt wird
+    # Reset game
     if keys[pygame.K_r]:
         ball_pos = [GAME_WIDTH // 2, BALL_START_Y]
         ball_vel = [0, 0]
         GAME_STARTED = False
+
 
 
 # Überprüft, ob die Maus geklickt wurde, und führt entsprechende Aktionen aus
@@ -499,9 +583,7 @@ def handle_mouse():
     if pygame.mouse.get_pressed()[0] and not GAME_STARTED:
         mouse_x, mouse_y = pygame.mouse.get_pos()
         # Setzt die Startposition der Kugel
-        if mouse_x < GAME_WIDTH and not (initial_impulse_slider.get_abs_rect().collidepoint(mouse_x, mouse_y) or
-                                         gravity_strength_slider.get_abs_rect().collidepoint(mouse_x, mouse_y) or
-                                         launch_angle_slider.get_abs_rect().collidepoint(mouse_x, mouse_y)):
+        if mouse_x < GAME_WIDTH:
             ball_pos = list(pygame.mouse.get_pos())
 
 
@@ -634,7 +716,7 @@ gravity_strength_label = UILabel(
 gravity_strength_slider = UIHorizontalSlider(
     relative_rect=pygame.Rect((GAME_WIDTH + 24, 410), (SLIDER_WIDTH - 28, SLIDER_HEIGHT)),
     start_value=GRAVITY_STRENGTH,
-    value_range=(SLIDER_MIN_VALUE, SLIDER_MAX_VALUE),
+    value_range=(SLIDER_MIN_GRAVITY, SLIDER_MAX_GRAVITY),
     manager=manager,
     object_id=ObjectID(class_id='@horizontal_slider', object_id='#gs_slider')
 )
@@ -870,7 +952,7 @@ def pause_menu():
 
 # Hauptspiel-Schleife, die alle anderen Funktionen aufruft und das Spiel steuert
 def game_loop():
-    global INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE, is_pause_menu_open, pause_panel, pregame_label
+    global INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE, is_pause_menu_open, pause_panel, pregame_label, ball_pos, ball_vel
 
     while True:
         for event in pygame.event.get():
@@ -913,7 +995,7 @@ def game_loop():
         if not GAME_STARTED:
             if pregame_label is None:
                 pregame_label = UILabel(
-                    relative_rect=pygame.Rect((GAME_WIDTH / 2 - 150, HEIGHT - 100), (300, 50)),
+                    relative_rect=pygame.Rect((GAME_WIDTH / 2 - 125, 25), (250, 50)),
                     text="Please place the ball",
                     manager=manager,
                     object_id=ObjectID(class_id='@label', object_id='#pregame_label')
@@ -930,13 +1012,25 @@ def game_loop():
             handle_keys()
             check_collision()
             check_ramp_collision()
-            draw_flipper(left_flipper_pos, left_flipper_angle, False)
-            draw_flipper(right_flipper_pos, right_flipper_angle, True)
+            draw_flipper(left_flipper_pos, left_flipper_angle, False, left_flipper_color)
+            draw_flipper(right_flipper_pos, right_flipper_angle, True, right_flipper_color)
             draw_bumpers()
             draw_ramps() 
             draw_gui()
             draw_particles()
             update_particles()
+            update_flippers()
+            draw_separator()
+
+            # Check if the ball has hit the bottom of the window
+            if ball_pos[1] >= HEIGHT - BALL_RADIUS:
+                result = end_game_screen(manager, window, clock, set_gui_visibility)
+                if result == 'new_game':
+                    ball_pos = [GAME_WIDTH // 2, BALL_START_Y]
+                    ball_vel = [0, 0]
+                    GAME_STARTED = False
+                    set_gui_visibility(True)
+                    continue
 
         manager.draw_ui(window)
 

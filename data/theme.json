@@ -430,5 +430,11 @@
       "border_width": "0",
       "shadow_width": "0"
     }
+  },
+  "#endgame_title": {
+    "font": {
+      "size": "80",
+      "bold": "1"
+    }
   }
 }
