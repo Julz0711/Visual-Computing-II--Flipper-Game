@@ -436,5 +436,16 @@
       "size": "80",
       "bold": "1"
     }
+  },
+  "#final_score_label": {
+    "colours": {
+      "dark_bg": "#121212",
+      "normal_text": "#f8f8f8",
+      "normal_border": "#121212"
+    },
+    "font": {
+      "size": "40",
+      "bold": "1"
+    }
   }
 }

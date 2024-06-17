@@ -4,7 +4,7 @@ import pygame_gui
 from pygame_gui.elements import UIButton, UILabel, UIPanel
 from pygame_gui.core import ObjectID
 
-def end_game_screen(manager, window, clock, set_gui_visibility):
+def end_game_screen(manager, window, clock, set_gui_visibility, high_score):
     padding = 48
     set_gui_visibility(False)
 
@@ -22,10 +22,19 @@ def end_game_screen(manager, window, clock, set_gui_visibility):
         container=endgame_panel,
         object_id=ObjectID(class_id='@label', object_id='#endgame_title')
     )
+    
+    # Final score
+    final_score_label = UILabel(
+        relative_rect=pygame.Rect((window.get_width() / 2 - 200, window.get_height() - 400), (400, 150)),
+        text=f"Final Score: {high_score}",
+        manager=manager,
+        container=endgame_panel,
+        object_id=ObjectID(class_id='@label', object_id='#final_score_label')
+    )
 
     # Fügt den "Neues Spiel"-Button hinzu
     new_game_button = UIButton(
-        relative_rect=pygame.Rect((window.get_width() / 2 - 125, window.get_height() - 200), (250, 80)),
+        relative_rect=pygame.Rect((window.get_width() / 2 - 200, window.get_height() - 100), (225, 60)),
         text="New Game",
         manager=manager,
         container=endgame_panel,
@@ -34,7 +43,7 @@ def end_game_screen(manager, window, clock, set_gui_visibility):
 
     # Fügt den "Beenden"-Button hinzu
     quit_button = UIButton(
-        relative_rect=pygame.Rect((window.get_width() / 2 - 100, window.get_height() - 100), (200, 60)),
+        relative_rect=pygame.Rect((window.get_width() / 2 + 50, window.get_height() - 98), (150, 56)),
         text="Quit",
         manager=manager,
         container=endgame_panel,
@@ -61,6 +70,6 @@ def end_game_screen(manager, window, clock, set_gui_visibility):
             manager.process_events(event)
 
         manager.update(time_delta)
-        window.fill((20, 20, 20))  
+        window.fill((5, 5, 5))  
         manager.draw_ui(window)
         pygame.display.flip()

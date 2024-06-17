@@ -74,10 +74,22 @@ right_flipper_color = FLIPPER_COLOUR
 
 # Initialisierung der Bumpers
 bumpers = [
-    {'pos': [175, 450], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR, 'active': False, 'timer': 0},
-    {'pos': [GAME_WIDTH - 175, 450], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR, 'active': False, 'timer': 0},
-    {'pos': [GAME_WIDTH / 2, 350], 'radius': BUMPER_RADIUS * 1.5, 'color': BUMPER_COLOUR, 'active': False, 'timer': 0}
+    {'pos': [125, 250], 'radius': BUMPER_RADIUS * .5, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
+    {'pos': [GAME_WIDTH - 125, 250], 'radius': BUMPER_RADIUS * .5, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
+    {'pos': [175, 450], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
+    {'pos': [GAME_WIDTH - 175, 450], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
+    {'pos': [GAME_WIDTH / 2, 350], 'radius': BUMPER_RADIUS * 1.5, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'points': TIER_2},
+    {'pos': [GAME_WIDTH / 2, 150], 'radius': BUMPER_RADIUS * 1.25, 'color': BUMPER_COLOUR_TIER_1, 'active': False, 'timer': 0, 'points': TIER_1}
+
 ]
+
+# Score
+high_score = 0
+
+def reset_high_score():
+    global high_score
+    high_score = 0
+
 
 
 ###
@@ -168,11 +180,11 @@ def draw_particles():
 ###
 
 # Reflektiert die Geschwindigkeit der Kugel bei Kollision mit einem Bumper
-def reflect_ball_velocity(ball_pos, ball_vel, bumper_pos, bumper_radius):
-    global ball_angular_vel
+def reflect_ball_velocity(ball_pos, ball_vel, bumper):
+    global ball_angular_vel, high_score
 
     # Berechnet den Einfallswinkel
-    angle_of_incidence = math.atan2(ball_pos[1] - bumper_pos[1], ball_pos[0] - bumper_pos[0])
+    angle_of_incidence = math.atan2(ball_pos[1] - bumper['pos'][1], ball_pos[0] - bumper['pos'][0])
     
     # Reflektiert den Geschwindigkeitsvektor
     normal = (math.cos(angle_of_incidence), math.sin(angle_of_incidence))
@@ -185,19 +197,22 @@ def reflect_ball_velocity(ball_pos, ball_vel, bumper_pos, bumper_radius):
     ball_vel[1] *= BUMPER_BOUNCE
     
     # Wendet Drehmoment basierend auf der Kollision an
-    collision_vector = [ball_pos[0] - bumper_pos[0], ball_pos[1] - bumper_pos[1]]
+    collision_vector = [ball_pos[0] - bumper['pos'][0], ball_pos[1] - bumper['pos'][1]]
     torque = (collision_vector[0] * ball_vel[1] - collision_vector[1] * ball_vel[0]) / (BALL_RADIUS ** 2)
     ball_angular_vel += torque
 
     # Stellt sicher, dass die Kugel nicht zu weit in den Bumper eindringt
-    distance = math.hypot(ball_pos[0] - bumper_pos[0], ball_pos[1] - bumper_pos[1])
-    overlap = BALL_RADIUS + bumper_radius - distance
+    distance = math.hypot(ball_pos[0] - bumper['pos'][0], ball_pos[1] - bumper['pos'][1])
+    overlap = BALL_RADIUS + bumper['radius'] - distance
     if overlap > 0:
         ball_pos[0] += overlap * normal[0]
         ball_pos[1] += overlap * normal[1]
 
     # Fügt Partikel an der Kollisionsstelle hinzu
     add_particles(ball_pos)
+
+    # Update high score
+    high_score += bumper['points']
 
 
 # Reflektiert die Kugel bei Kollision mit einer Linie (Flipper oder Rampe)
@@ -212,7 +227,7 @@ def reflect_ball(start, end, is_flipper=False, flipper_velocity=0):
     if (ball_to_midpoint[0] * normal[0] + ball_to_midpoint[1] * normal[1]) > 0:
         normal = (-normal[0], -normal[1])
 
-    ball_vel[0], ball_vel[1] = reflect(ball_vel, normal)
+    ball_vel[0], ball_vel[1] = reflect(ball_vel, normal, is_flipper)
 
     # Apply torque based on the collision
     collision_vector = [ball_pos[0] - midpoint[0], ball_pos[1] - midpoint[1]]
@@ -232,14 +247,14 @@ def reflect_ball(start, end, is_flipper=False, flipper_velocity=0):
 
 
 # Reflektiert eine gegebene Geschwindigkeit an einer Fläche mit gegebenem Normalenvektor
-def reflect(velocity, normal):
+def reflect(velocity, normal, is_flipper=False):
     # Berechnet das Skalarprodukt der Geschwindigkeit und des Normalenvektors
     dot_product = velocity[0] * normal[0] + velocity[1] * normal[1]
     
     # Berechnet den reflektierten Geschwindigkeitsvektor
     reflected_velocity = (
-        velocity[0] - 2 * dot_product * normal[0],
-        velocity[1] - 2 * dot_product * normal[1]
+        (velocity[0] - 2 * dot_product * normal[0]) * (COEFFICIENT_OF_RESTITUTION if not is_flipper else 1),
+        (velocity[1] - 2 * dot_product * normal[1]) * (COEFFICIENT_OF_RESTITUTION if not is_flipper else 1)
     )
     return reflected_velocity
 
@@ -292,7 +307,7 @@ def move_ball():
             if not bumper['active']:
                 bumper['active'] = True
                 bumper['timer'] = 10
-            reflect_ball_velocity(ball_pos, ball_vel, bumper['pos'], bumper['radius'])
+            reflect_ball_velocity(ball_pos, ball_vel, bumper)
 
     # Überprüft, ob die Kugel auf den Flippern rollt
     # check_ball_on_flipper()
@@ -388,12 +403,12 @@ def check_collision():
 
     # Check for collisions with the playfield boundaries
     if ball_pos[0] <= BALL_RADIUS or ball_pos[0] >= GAME_WIDTH - BALL_RADIUS:
-        ball_vel[0] = -ball_vel[0]
+        ball_vel[0] = -ball_vel[0] * COEFFICIENT_OF_RESTITUTION  # Reflect and reduce velocity based on COR
+        ball_pos[0] = max(min(ball_pos[0], GAME_WIDTH - BALL_RADIUS), BALL_RADIUS)
 
     if ball_pos[1] <= BALL_RADIUS or ball_pos[1] >= HEIGHT - BALL_RADIUS:
-        ball_vel[1] = -ball_vel[1]
-
-
+        ball_vel[1] = -ball_vel[1] * COEFFICIENT_OF_RESTITUTION  # Reflect and reduce velocity based on COR
+        ball_pos[1] = max(min(ball_pos[1], HEIGHT - BALL_RADIUS), BALL_RADIUS)
 
 
 # Berechnet den Abstand eines Punktes von einer Linie, definiert durch zwei Punkte
@@ -632,15 +647,35 @@ def handle_buttons(event):
 ### Graphical User Interface (GUI) ###
 ###
 
+
+# High score label
+high_score_label = UILabel(
+    relative_rect=pygame.Rect((GAME_WIDTH + 14, 590), (UI_WIDTH - 32, 30)),
+    text="Score",
+    manager=manager,
+    object_id=ObjectID(class_id='@label', object_id='#position_label')
+)
+
+# High score value
+high_score_value = UITextBox(
+    relative_rect=pygame.Rect((GAME_WIDTH + 12, 620), (UI_WIDTH - 28, 40)),
+    html_text="0",
+    manager=manager,
+    object_id=ObjectID(class_id='@text_box', object_id='#position_value')
+)
+
+
 # Zeichnet die grafische Benutzeroberfläche (GUI) auf das Fenster
 def draw_gui():
     # Zeichnet den Hintergrund des GUI-Bereichs
     position_text = f'X: {ball_pos[0]:.2f}, Y: {ball_pos[1]:.2f}'
     speed = math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
     speed_text = f'{speed:.2f}'
+    high_score_text = f'{high_score}'
 
     position_value.set_text(position_text)
     speed_value.set_text(speed_text)
+    high_score_value.set_text(high_score_text)
 
 pause_label = UILabel(
     relative_rect=pygame.Rect((GAME_WIDTH + 14, 10), (UI_WIDTH - 28, 40)),
@@ -1024,11 +1059,12 @@ def game_loop():
 
             # Check if the ball has hit the bottom of the window
             if ball_pos[1] >= HEIGHT - BALL_RADIUS:
-                result = end_game_screen(manager, window, clock, set_gui_visibility)
+                result = end_game_screen(manager, window, clock, set_gui_visibility, high_score)
                 if result == 'new_game':
                     ball_pos = [GAME_WIDTH // 2, BALL_START_Y]
                     ball_vel = [0, 0]
                     GAME_STARTED = False
+                    reset_high_score()
                     set_gui_visibility(True)
                     continue
 
