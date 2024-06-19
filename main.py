@@ -25,6 +25,9 @@ font = pygame.font.SysFont(None, 24)
 clock = pygame.time.Clock()
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 
+# Load the background image
+background_image = pygame.image.load('data/gui_bg.png')
+
 # Initialisiere den UI Manager und lade das Theme aus der theme.json-Datei
 manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'data/theme.json')
 
@@ -80,7 +83,6 @@ bumpers = [
     {'pos': [GAME_WIDTH - 175, 450], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
     {'pos': [GAME_WIDTH / 2, 350], 'radius': BUMPER_RADIUS * 1.5, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'points': TIER_2},
     {'pos': [GAME_WIDTH / 2, 150], 'radius': BUMPER_RADIUS * 1.25, 'color': BUMPER_COLOUR_TIER_1, 'active': False, 'timer': 0, 'points': TIER_1}
-
 ]
 
 # Score
@@ -126,7 +128,7 @@ ramps = [
     Ramp((GAME_WIDTH - 50, 470), 90, 250),
     Ramp((75, 150), -30, 150),
     Ramp((GAME_WIDTH - 75, 150), -150, 150),
-    # Ramp((GAME_WIDTH / 2 - 100, 400), 0, 200)
+    #Ramp((GAME_WIDTH / 2 - 100, 400), 0, 200)
 ]
 
 
@@ -215,8 +217,7 @@ def reflect_ball_velocity(ball_pos, ball_vel, bumper):
     high_score += bumper['points']
 
 
-# Reflektiert die Kugel bei Kollision mit einer Linie (Flipper oder Rampe)
-def reflect_ball(start, end, is_flipper=False, flipper_velocity=0):
+def reflect_ball(start, end, is_flipper=False, flipper_angular_velocity=0, flipper_moving=False):
     global ball_pos, ball_vel, ball_angular_vel
 
     # Calculate the normal vector of the line
@@ -227,7 +228,23 @@ def reflect_ball(start, end, is_flipper=False, flipper_velocity=0):
     if (ball_to_midpoint[0] * normal[0] + ball_to_midpoint[1] * normal[1]) > 0:
         normal = (-normal[0], -normal[1])
 
-    ball_vel[0], ball_vel[1] = reflect(ball_vel, normal, is_flipper)
+    # Reflect velocity based on the normal
+    dot_product = ball_vel[0] * normal[0] + ball_vel[1] * normal[1]
+    ball_vel[0] -= 2 * dot_product * normal[0]
+    ball_vel[1] -= 2 * dot_product * normal[1]
+
+    if is_flipper and flipper_moving:
+        # Calculate the distance from the flipper pivot
+        distance_from_pivot = math.sqrt((ball_pos[0] - start[0])**2 + (ball_pos[1] - start[1])**2)
+
+        # Calculate the linear velocity at the point of collision
+        linear_velocity = distance_from_pivot * flipper_angular_velocity
+
+        # Apply momentum transfer from flipper to ball
+        ball_vel[0] += normal[0] * linear_velocity
+        ball_vel[1] += normal[1] * linear_velocity
+
+        add_flipper_particles(ball_pos)
 
     # Apply torque based on the collision
     collision_vector = [ball_pos[0] - midpoint[0], ball_pos[1] - midpoint[1]]
@@ -237,13 +254,6 @@ def reflect_ball(start, end, is_flipper=False, flipper_velocity=0):
     # Ensure the ball does not penetrate the object too much
     while point_line_distance(ball_pos, start, end) <= BALL_RADIUS:
         ball_pos = [ball_pos[0] + normal[0] * 0.1, ball_pos[1] + normal[1] * 0.1]
-
-    # Apply additional impulse if colliding with a flipper
-    if is_flipper:
-        impulse = flipper_velocity * FLIPPER_IMPULSE
-        ball_vel[0] += normal[0] * impulse
-        ball_vel[1] += normal[1] * impulse
-        add_flipper_particles(ball_pos)
 
 
 # Reflektiert eine gegebene Geschwindigkeit an einer Fläche mit gegebenem Normalenvektor
@@ -329,17 +339,14 @@ def apply_flipper_physics(ball_pos, ball_vel, flipper_start, flipper_end):
     flipper_angle = math.atan2(flipper_end[1] - flipper_start[1], flipper_end[0] - flipper_start[0])
     gravity_parallel = GRAVITY * math.sin(flipper_angle)
     
-    # Aktualisiert die Geschwindigkeit der Kugel basierend auf der Schwerkraft entlang des Flipperwinkels
+    # Apply gravity parallel to the flipper angle
     ball_vel[0] += gravity_parallel * dt * math.cos(flipper_angle)
     ball_vel[1] += gravity_parallel * dt * math.sin(flipper_angle)
 
-    # Berechnet die projizierte Position der Kugel nach der Geschwindigkeit
+    # Ensure the ball rolls off the flipper naturally
     projected_pos = [ball_pos[0] + ball_vel[0] * dt, ball_pos[1] + ball_vel[1] * dt]
-
-    # Berechnet den Abstand der projizierten Position zum Flipper
     dist_to_flipper = point_line_distance(projected_pos, flipper_start, flipper_end)
 
-    # Wenn die Kugel den Flipper verlässt, korrigiert die Position, damit sie darauf bleibt
     if dist_to_flipper > BALL_RADIUS:
         normal = get_line_normal(flipper_start, flipper_end)
         ball_pos[0] -= normal[0] * (dist_to_flipper - BALL_RADIUS)
@@ -384,9 +391,9 @@ def check_collision():
     global ball_pos, ball_vel
 
     # Check for collisions with the flippers
-    for flipper_pos, angle, is_right, flipper_active, flipper_velocity in [
-        (left_flipper_pos, left_flipper_angle, False, left_flipper_active, FLIPPER_ANGLE_STEP if left_flipper_active else 0),
-        (right_flipper_pos, right_flipper_angle, True, right_flipper_active, FLIPPER_ANGLE_STEP if right_flipper_active else 0)]:
+    for flipper_pos, angle, is_right, flipper_active, flipper_angular_velocity, flipper_moving in [
+        (left_flipper_pos, left_flipper_angle, False, left_flipper_active, FLIPPER_ANGLE_STEP if left_flipper_active else 0, left_flipper_moving),
+        (right_flipper_pos, right_flipper_angle, True, right_flipper_active, FLIPPER_ANGLE_STEP if right_flipper_active else 0, right_flipper_moving)]:
 
         start_x, start_y = flipper_pos
         end_x = start_x + FLIPPER_LENGTH * math.cos(math.radians(angle)) * (-1 if is_right else 1)
@@ -398,7 +405,7 @@ def check_collision():
         collision, collision_pos = check_continuous_collision(ball_pos, ball_vel, flipper_start, flipper_end)
         if collision:
             ball_pos = collision_pos  # Update ball position to the collision point
-            reflect_ball(flipper_start, flipper_end, is_flipper=True, flipper_velocity=flipper_velocity)
+            reflect_ball(flipper_start, flipper_end, is_flipper=True, flipper_angular_velocity=flipper_angular_velocity, flipper_moving=flipper_moving)
             break
 
     # Check for collisions with the playfield boundaries
@@ -409,6 +416,7 @@ def check_collision():
     if ball_pos[1] <= BALL_RADIUS or ball_pos[1] >= HEIGHT - BALL_RADIUS:
         ball_vel[1] = -ball_vel[1] * COEFFICIENT_OF_RESTITUTION  # Reflect and reduce velocity based on COR
         ball_pos[1] = max(min(ball_pos[1], HEIGHT - BALL_RADIUS), BALL_RADIUS)
+
 
 
 # Berechnet den Abstand eines Punktes von einer Linie, definiert durch zwei Punkte
@@ -536,21 +544,33 @@ def draw_initial_trajectory():
 left_flipper_target_angle = -30
 right_flipper_target_angle = -30
 
-# Update flippers to animate their movement
+# Initialize flipper_moving states
+left_flipper_moving = False
+right_flipper_moving = False
+
 def update_flippers():
-    global left_flipper_angle, right_flipper_angle
+    global left_flipper_angle, right_flipper_angle, left_flipper_moving, right_flipper_moving
 
     # Update left flipper angle
     if left_flipper_angle < left_flipper_target_angle:
         left_flipper_angle = min(left_flipper_angle + FLIPPER_ANGLE_STEP, left_flipper_target_angle)
+        left_flipper_moving = True
     elif left_flipper_angle > left_flipper_target_angle:
         left_flipper_angle = max(left_flipper_angle - FLIPPER_ANGLE_STEP, left_flipper_target_angle)
+        left_flipper_moving = True
+    else:
+        left_flipper_moving = False
 
     # Update right flipper angle
     if right_flipper_angle < right_flipper_target_angle:
         right_flipper_angle = min(right_flipper_angle + FLIPPER_ANGLE_STEP, right_flipper_target_angle)
+        right_flipper_moving = True
     elif right_flipper_angle > right_flipper_target_angle:
         right_flipper_angle = max(right_flipper_angle - FLIPPER_ANGLE_STEP, right_flipper_target_angle)
+        right_flipper_moving = True
+    else:
+        right_flipper_moving = False
+
 
 
 ###
@@ -668,9 +688,9 @@ high_score_value = UITextBox(
 # Zeichnet die grafische Benutzeroberfläche (GUI) auf das Fenster
 def draw_gui():
     # Zeichnet den Hintergrund des GUI-Bereichs
-    position_text = f'X: {ball_pos[0]:.2f}, Y: {ball_pos[1]:.2f}'
+    position_text = f'X: {ball_pos[0]:.0f}, Y: {ball_pos[1]:.0f}'
     speed = math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
-    speed_text = f'{speed:.2f}'
+    speed_text = f'{speed:.1f}'
     high_score_text = f'{high_score}'
 
     position_value.set_text(position_text)
@@ -725,7 +745,7 @@ ball_settings_label = UITextBox(
 # Beschriftung für den initialen Impuls-Slider
 initial_impulse_label = UILabel(
     relative_rect=pygame.Rect((GAME_WIDTH + 26, 300), (SLIDER_WIDTH - 8, 30)),
-    text=f"Initial Impulse: {INITIAL_BALL_IMPULSE / METER:.2f} m/s",
+    text=f"Initial Speed: {INITIAL_BALL_IMPULSE / METER:.1f} m/s",
     manager=manager,
     object_id=ObjectID(class_id='@label', object_id='#ii_label')
 )
@@ -742,7 +762,7 @@ initial_impulse_slider = UIHorizontalSlider(
 # Beschriftung für den Schwerkraftstärke-Slider
 gravity_strength_label = UILabel(
     relative_rect=pygame.Rect((GAME_WIDTH + 26, 380), (SLIDER_WIDTH - 8, 30)),
-    text=f"Gravity Strength: {GRAVITY / METER / 9.81:.2f}",
+    text=f"Gravity Strength: {GRAVITY / METER / 9.81:.1f}",
     manager=manager,
     object_id=ObjectID(class_id='@label', object_id='#gs_label')
 )
@@ -759,7 +779,7 @@ gravity_strength_slider = UIHorizontalSlider(
 # Beschriftung für den Abschusswinkel-Slider
 launch_angle_label = UILabel(
     relative_rect=pygame.Rect((GAME_WIDTH + 26, 460), (SLIDER_WIDTH - 8, 30)),
-    text=f"Launch Angle: {BALL_ANGLE:.2f} degrees",
+    text=f"Launch Angle: {BALL_ANGLE:.1f} degrees",
     manager=manager,
     object_id=ObjectID(class_id='@label', object_id='#la_label')
 )
@@ -1007,11 +1027,11 @@ def game_loop():
                     elif hasattr(event, 'user_type') and event.user_type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                         if event.ui_element == initial_impulse_slider:
                             INITIAL_BALL_IMPULSE = event.value * METER
-                            initial_impulse_label.set_text(f"Initial Impulse: {INITIAL_BALL_IMPULSE / METER:.2f} m/s")
+                            initial_impulse_label.set_text(f"Initial Speed: {INITIAL_BALL_IMPULSE / METER:.1f} m/s")
                         elif event.ui_element == gravity_strength_slider:
                             GRAVITY_STRENGTH = event.value
                             GRAVITY = 9.81 * METER * GRAVITY_STRENGTH
-                            gravity_strength_label.set_text(f"Gravity Strength: {GRAVITY/METER/9.81:.2f}")
+                            gravity_strength_label.set_text(f"Gravity Strength: {GRAVITY/METER/9.81:.1f}")
                         elif event.ui_element == launch_angle_slider:
                             BALL_ANGLE = event.value
                             launch_angle_label.set_text(f"Launch Angle: {BALL_ANGLE} degrees")
@@ -1026,6 +1046,9 @@ def game_loop():
         
         window.fill(GAME_BG_COLOR, rect=pygame.Rect(0, 0, GAME_WIDTH, HEIGHT))
         window.fill(GUI_BG_COLOR, rect=pygame.Rect(GAME_WIDTH, 0, UI_WIDTH, HEIGHT))
+
+        # Blit the background image
+        window.blit(background_image, (GAME_WIDTH, 0))
 
         if not GAME_STARTED:
             if pregame_label is None:
