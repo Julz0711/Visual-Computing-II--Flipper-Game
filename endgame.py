@@ -1,32 +1,30 @@
 import pygame
 import sys
 import pygame_gui
+from config import *
+import pygame_gui.data
 from pygame_gui.elements import UIButton, UILabel, UIPanel
 from pygame_gui.core import ObjectID
+
+gameover_image = pygame.image.load('data/gameover_bg.png')
 
 def end_game_screen(manager, window, clock, set_gui_visibility, high_score):
     padding = 48
     set_gui_visibility(False)
+
+    pause_surface = pygame.Surface((WIDTH, HEIGHT))
+    pause_surface.blit(gameover_image, (0, 0))
 
     # Erstellt ein Panel, das das gesamte Fenster abdeckt
     endgame_panel = UIPanel(
         relative_rect=pygame.Rect(0, 0, window.get_width(), window.get_height()),
         manager=manager
     )
-
-    # Header
-    endgame_title = UILabel(
-        relative_rect=pygame.Rect((padding, padding), (window.get_width() - padding * 2, 300)),
-        text=f"Game Over",
-        manager=manager,
-        container=endgame_panel,
-        object_id=ObjectID(class_id='@label', object_id='#endgame_title')
-    )
     
     # Final score
     final_score_label = UILabel(
-        relative_rect=pygame.Rect((window.get_width() / 2 - 200, window.get_height() - 400), (400, 150)),
-        text=f"Final Score: {high_score}",
+        relative_rect=pygame.Rect(((window.get_width() / 2) - (WIDTH / 2), window.get_height() - 290), (WIDTH, 150)),
+        text=f"{high_score}",
         manager=manager,
         container=endgame_panel,
         object_id=ObjectID(class_id='@label', object_id='#final_score_label')
@@ -70,6 +68,6 @@ def end_game_screen(manager, window, clock, set_gui_visibility, high_score):
             manager.process_events(event)
 
         manager.update(time_delta)
-        window.fill((5, 5, 5))  
+        window.blit(pause_surface, (0, 0))
         manager.draw_ui(window)
         pygame.display.flip()

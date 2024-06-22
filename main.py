@@ -22,19 +22,22 @@ pygame.init()
 pygame.font.init()
 pygame.mixer.init()
 font = pygame.font.SysFont(None, 24)
+custom_font = pygame.font.Font('data/PressStart2P-Regular.ttf', 12)  # Adjust the font size as needed
 clock = pygame.time.Clock()
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 
 # Load the background image
 background_image = pygame.image.load('data/gui_bg.png')
+pause_image = pygame.image.load('data/pause_bg.png')
 
 # Initialisiere den UI Manager und lade das Theme aus der theme.json-Datei
 manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'data/theme.json')
 
 # Hintergrundmusik laden und abspielen
 pygame.mixer.music.load('data/pinbolchill.mp3')
-pygame.mixer.music.set_volume(0.1)
+pygame.mixer.music.set_volume(0)
 pygame.mixer.music.play(-1) 
+
 
 # Initialisierung der Kugel mit Startposition und Geschwindigkeit
 ball_pos = [GAME_WIDTH // 2, BALL_START_Y]
@@ -55,6 +58,18 @@ def set_gui_visibility(visible):
     initial_impulse_slider.sliding_button.visible = visible
     gravity_strength_slider.sliding_button.visible = visible
     launch_angle_slider.sliding_button.visible = visible
+    initial_impulse_slider.visible = visible
+    gravity_strength_slider.visible = visible
+    launch_angle_slider.visible = visible
+    initial_impulse_label.visible = visible
+    gravity_strength_label.visible = visible
+    launch_angle_label.visible = visible
+    speed_value.visible = visible
+    position_value.visible = visible
+    play_button.visible = visible
+    pause_button.visible = visible
+    reset_button.visible = visible
+    high_score_value.visible = visible
 
 # Positionierung der Rampen
 ramp_left_start = (0, HEIGHT - 300)
@@ -77,12 +92,12 @@ right_flipper_color = FLIPPER_COLOUR
 
 # Initialisierung der Bumpers
 bumpers = [
-    {'pos': [125, 250], 'radius': BUMPER_RADIUS * .5, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
-    {'pos': [GAME_WIDTH - 125, 250], 'radius': BUMPER_RADIUS * .5, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
-    {'pos': [175, 450], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
-    {'pos': [GAME_WIDTH - 175, 450], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
+    {'pos': [125, 250], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
+    {'pos': [GAME_WIDTH - 125, 250], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
+    {'pos': [175, 450], 'radius': BUMPER_RADIUS * 1.15, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
+    {'pos': [GAME_WIDTH - 175, 450], 'radius': BUMPER_RADIUS * 1.15, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
     {'pos': [GAME_WIDTH / 2, 350], 'radius': BUMPER_RADIUS * 1.5, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'points': TIER_2},
-    {'pos': [GAME_WIDTH / 2, 150], 'radius': BUMPER_RADIUS * 1.25, 'color': BUMPER_COLOUR_TIER_1, 'active': False, 'timer': 0, 'points': TIER_1}
+    {'pos': [GAME_WIDTH / 2, 150], 'radius': BUMPER_RADIUS * 1.33, 'color': BUMPER_COLOUR_TIER_1, 'active': False, 'timer': 0, 'points': TIER_1}
 ]
 
 # Score
@@ -232,6 +247,10 @@ def reflect_ball(start, end, is_flipper=False, flipper_angular_velocity=0, flipp
     dot_product = ball_vel[0] * normal[0] + ball_vel[1] * normal[1]
     ball_vel[0] -= 2 * dot_product * normal[0]
     ball_vel[1] -= 2 * dot_product * normal[1]
+
+    # Apply the coefficient of restitution
+    ball_vel[0] *= COEFFICIENT_OF_RESTITUTION
+    ball_vel[1] *= COEFFICIENT_OF_RESTITUTION
 
     if is_flipper and flipper_moving:
         # Calculate the distance from the flipper pivot
@@ -506,6 +525,10 @@ def draw_bumpers():
         else:
             # Zeichne den Bumper in normaler Größe, wenn er nicht aktiv ist
             pygame.draw.circle(window, bumper['color'], (int(bumper['pos'][0]), int(bumper['pos'][1])), bumper['radius'])
+    
+        label = custom_font.render(str(bumper['points']), True, pygame.Color('#121212'))
+        label_rect = label.get_rect(center=(int(bumper['pos'][0]), int(bumper['pos'][1]) + 2))
+        window.blit(label, label_rect)
 
 
 # Zeichnet die Rampen auf das Spielfeld
@@ -667,28 +690,18 @@ def handle_buttons(event):
 ### Graphical User Interface (GUI) ###
 ###
 
-
-# High score label
-high_score_label = UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 14, 590), (UI_WIDTH - 32, 30)),
-    text="Score",
-    manager=manager,
-    object_id=ObjectID(class_id='@label', object_id='#position_label')
-)
-
 # High score value
 high_score_value = UITextBox(
-    relative_rect=pygame.Rect((GAME_WIDTH + 12, 620), (UI_WIDTH - 28, 40)),
+    relative_rect=pygame.Rect((GAME_WIDTH + 12, 48), (UI_WIDTH - 28, 80)),
     html_text="0",
     manager=manager,
-    object_id=ObjectID(class_id='@text_box', object_id='#position_value')
+    object_id=ObjectID(class_id='@text_box', object_id='#highscore_value')
 )
-
 
 # Zeichnet die grafische Benutzeroberfläche (GUI) auf das Fenster
 def draw_gui():
     # Zeichnet den Hintergrund des GUI-Bereichs
-    position_text = f'X: {ball_pos[0]:.0f}, Y: {ball_pos[1]:.0f}'
+    position_text = f'X: {ball_pos[0]:.0f} Y: {ball_pos[1]:.0f}'
     speed = math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
     speed_text = f'{speed:.1f}'
     high_score_text = f'{high_score}'
@@ -697,54 +710,32 @@ def draw_gui():
     speed_value.set_text(speed_text)
     high_score_value.set_text(high_score_text)
 
+"""
 pause_label = UILabel(
     relative_rect=pygame.Rect((GAME_WIDTH + 14, 10), (UI_WIDTH - 28, 40)),
     text="Drücke ESC zum Pausieren",
     manager=manager,
     object_id=ObjectID(class_id='@label', object_id='#pause_label')
 )
-
-position_label = UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 14, 70), (UI_WIDTH - 28, 30)),
-    text="Position",
-    manager=manager,
-    object_id=ObjectID(class_id='@label', object_id='#position_label')
-)
+"""
 
 position_value = UITextBox(
-    relative_rect=pygame.Rect((GAME_WIDTH + 12, 100), (UI_WIDTH - 24, 40)),
-    html_text="X: 0.00, Y: 0.00",
+    relative_rect=pygame.Rect((GAME_WIDTH + 12, 192), (150, 40)),
+    html_text="X: 0 Y: 0",
     manager=manager,
     object_id=ObjectID(class_id='@text_box', object_id='#position_value')
 )
 
-speed_label = UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 14, 150), (UI_WIDTH - 28, 30)),
-    text="Speed",
-    manager=manager,
-    object_id=ObjectID(class_id='@label', object_id='#speed_label')
-)
-
 speed_value = UITextBox(
-    relative_rect=pygame.Rect((GAME_WIDTH + 12, 180), (UI_WIDTH - 24, 40)),
+    relative_rect=pygame.Rect((GAME_WIDTH + 184, 192), (102, 40)),
     html_text="0.00",
     manager=manager,
     object_id=ObjectID(class_id='@text_box', object_id='#speed_value')
 )
 
-
-# Beschriftung für die Slider
-
-ball_settings_label = UITextBox(
-    relative_rect=pygame.Rect((GAME_WIDTH + 14, 240), (SLIDER_WIDTH - 8, 310)),
-    html_text="Ball Settings:",
-    manager=manager,
-    object_id=ObjectID(class_id='@text_box', object_id='#ball_label')
-)
-
 # Beschriftung für den initialen Impuls-Slider
 initial_impulse_label = UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 26, 300), (SLIDER_WIDTH - 8, 30)),
+    relative_rect=pygame.Rect((GAME_WIDTH + 41, 340), (SLIDER_WIDTH - 8, 30)),
     text=f"Initial Speed: {INITIAL_BALL_IMPULSE / METER:.1f} m/s",
     manager=manager,
     object_id=ObjectID(class_id='@label', object_id='#ii_label')
@@ -752,7 +743,7 @@ initial_impulse_label = UILabel(
 
 # Initialisierung des Sliders für den initialen Impuls
 initial_impulse_slider = UIHorizontalSlider(
-    relative_rect=pygame.Rect((GAME_WIDTH + 24, 330), (SLIDER_WIDTH - 28, SLIDER_HEIGHT)),
+    relative_rect=pygame.Rect((GAME_WIDTH + 39, 370), (SLIDER_WIDTH - 28, SLIDER_HEIGHT)),
     start_value=INITIAL_BALL_IMPULSE / METER,
     value_range=(SLIDER_MIN_VALUE, SLIDER_MAX_VALUE),
     manager=manager,
@@ -761,7 +752,7 @@ initial_impulse_slider = UIHorizontalSlider(
 
 # Beschriftung für den Schwerkraftstärke-Slider
 gravity_strength_label = UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 26, 380), (SLIDER_WIDTH - 8, 30)),
+    relative_rect=pygame.Rect((GAME_WIDTH + 41, 420), (SLIDER_WIDTH - 8, 30)),
     text=f"Gravity Strength: {GRAVITY / METER / 9.81:.1f}",
     manager=manager,
     object_id=ObjectID(class_id='@label', object_id='#gs_label')
@@ -769,7 +760,7 @@ gravity_strength_label = UILabel(
 
 # Initialisierung des Sliders für die Schwerkraftstärke
 gravity_strength_slider = UIHorizontalSlider(
-    relative_rect=pygame.Rect((GAME_WIDTH + 24, 410), (SLIDER_WIDTH - 28, SLIDER_HEIGHT)),
+    relative_rect=pygame.Rect((GAME_WIDTH + 39, 450), (SLIDER_WIDTH - 28, SLIDER_HEIGHT)),
     start_value=GRAVITY_STRENGTH,
     value_range=(SLIDER_MIN_GRAVITY, SLIDER_MAX_GRAVITY),
     manager=manager,
@@ -778,15 +769,15 @@ gravity_strength_slider = UIHorizontalSlider(
 
 # Beschriftung für den Abschusswinkel-Slider
 launch_angle_label = UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 26, 460), (SLIDER_WIDTH - 8, 30)),
-    text=f"Launch Angle: {BALL_ANGLE:.1f} degrees",
+    relative_rect=pygame.Rect((GAME_WIDTH + 41, 500), (SLIDER_WIDTH - 8, 30)),
+    text=f"Launch Angle: {BALL_ANGLE:.1f} deg",
     manager=manager,
     object_id=ObjectID(class_id='@label', object_id='#la_label')
 )
 
 # Initialisierung des Sliders für den Abschusswinkel der Kugel
 launch_angle_slider = UIHorizontalSlider(
-    relative_rect=pygame.Rect((GAME_WIDTH + 24, 490), (SLIDER_WIDTH - 28, SLIDER_HEIGHT)),
+    relative_rect=pygame.Rect((GAME_WIDTH + 39, 530), (SLIDER_WIDTH - 28, SLIDER_HEIGHT)),
     start_value=BALL_ANGLE,
     value_range=(SLIDER_MIN_ANGLE, SLIDER_MAX_ANGLE),
     manager=manager,
@@ -795,7 +786,7 @@ launch_angle_slider = UIHorizontalSlider(
 
 # Play Button
 play_button = UIButton(
-    relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH - 8, HEIGHT - 130), (SLIDER_WIDTH - 8, 65)),
+    relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH - 16, HEIGHT - 150), (SLIDER_WIDTH - 12, 65)),
     text="Play",
     manager=manager,
     object_id=ObjectID(class_id='button', object_id='#play_button')
@@ -803,7 +794,7 @@ play_button = UIButton(
 
 # Pause Button
 pause_button = UIButton(
-    relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH - 8, HEIGHT - 60), (SLIDER_WIDTH / 2 - 4, 50)),
+    relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH - 16, HEIGHT - 80), (SLIDER_WIDTH / 2 - 8, 50)),
     text="Pause",
     manager=manager,
     object_id=ObjectID(class_id='button', object_id='#pause_button')
@@ -811,7 +802,7 @@ pause_button = UIButton(
 
 # Reset Button
 reset_button = UIButton(
-    relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH / 2 - 8, HEIGHT - 60), (SLIDER_WIDTH / 2 - 8, 50)),
+    relative_rect=pygame.Rect((WIDTH - SLIDER_WIDTH / 2 - 20, HEIGHT - 80), (SLIDER_WIDTH / 2 - 8, 50)),
     text="Reset",
     manager=manager,
     object_id=ObjectID(class_id='button', object_id='#reset_button')
@@ -829,6 +820,10 @@ def pause_menu():
     is_pause_menu_open = True
     set_gui_visibility(False)
 
+    # Create a surface for the pause menu
+    pause_surface = pygame.Surface((WIDTH, HEIGHT))
+    pause_surface.blit(pause_image, (0, 0))
+
     padding = 48
 
     # Erstellt ein Panel, das das gesamte Fenster abdeckt
@@ -837,52 +832,13 @@ def pause_menu():
         manager=manager
     )
 
-    # Header
-    menu_title = UILabel(
-        relative_rect=pygame.Rect((32, 32), (WIDTH, 100)),
-        text=f"Pause Menu",
-        manager=manager,
-        container=pause_panel,
-        object_id=ObjectID(class_id='@label', object_id='#menu_title')
-    )
-
-    controls_text = "Controls:"
-    dropdown_text = "Ball Colour:"
-    volume_text = "Volume:" + str(int(pygame.mixer.music.get_volume() * 100))
-
-    # Spielsteuerung
-    controls_label = UILabel(
-        relative_rect=pygame.Rect(padding + 2, 150, WIDTH, 30),
-        text=controls_text,
-        manager=manager,
-        container=pause_panel,
-        object_id=ObjectID(class_id='@label', object_id='#menu_label')
-    )
-
-    controls_list = UITextBox(
-        relative_rect=pygame.Rect((padding, 190), (WIDTH - 64 - 32, 170)),
-        html_text="A - Activate left flipper<br>D - Activate right flipper<br>R - Reset game<br>ESC - Pause/Continue Game",
-        manager=manager,
-        container=pause_panel,
-        object_id=ObjectID(class_id='@text_box', object_id='#controls_list')
-    )
-    
-    # Dropdown Menü für die Farbe der Kugel
-    dropdown_label = UILabel(
-        relative_rect=pygame.Rect(padding + 2, 400, WIDTH, 30),
-        text=dropdown_text,
-        manager=manager,
-        container=pause_panel,
-        object_id=ObjectID(class_id='@label', object_id='#menu_label')
-    )
-
     ball_preview_width = 48
-    dropdown_width = WIDTH - padding - padding - 32 - ball_preview_width
+    dropdown_width = WIDTH - padding - padding - 64 - ball_preview_width
 
     dropdown = UIDropDownMenu(
         options_list=['White', 'Red', 'Green', 'Blue', 'Purple', 'Orange', 'Yellow'],
         starting_option=ball_color,
-        relative_rect=pygame.Rect(padding, 440, dropdown_width, 50),
+        relative_rect=pygame.Rect(padding + 24, 435, dropdown_width, 50),
         manager=manager,
         container=pause_panel,
         object_id=ObjectID(class_id='@dropdown', object_id='#ball_dropdown')
@@ -902,7 +858,7 @@ def pause_menu():
 
     # Vorschau der Kugel
     ball_preview_label = UILabel(
-        relative_rect=pygame.Rect(padding + dropdown_width + 28, 440, ball_preview_width, ball_preview_width),
+        relative_rect=pygame.Rect(padding + dropdown_width + 32, 435, ball_preview_width, ball_preview_width),
         text="",
         manager=manager,
         container=pause_panel,
@@ -912,17 +868,8 @@ def pause_menu():
     # Initiale runde Kugelvorschau zeichnen
     update_ball_preview(ball_color)
 
-    # Volume-Slider hinzufügen
-    volume_label = UILabel(
-        relative_rect=pygame.Rect(padding + 2, 520, 200, 30),
-        text="Volume:",
-        manager=manager,
-        container=pause_panel,
-        object_id=ObjectID(class_id='@label', object_id='#menu_label')
-    )
-
     volume_value_label = UILabel(
-        relative_rect=pygame.Rect(dropdown_width + padding + 28, 562, 50, SLIDER_HEIGHT + 12 - 4),
+        relative_rect=pygame.Rect(dropdown_width + padding + 32, 592, 50, SLIDER_HEIGHT + 12 - 4),
         text=str(int(pygame.mixer.music.get_volume() * 100)),
         manager=manager,
         container=pause_panel,
@@ -930,7 +877,7 @@ def pause_menu():
     )
 
     volume_slider = UIHorizontalSlider(
-        relative_rect=pygame.Rect(padding, 560, dropdown_width, SLIDER_HEIGHT + 12),
+        relative_rect=pygame.Rect(padding + 24, 590, dropdown_width, SLIDER_HEIGHT + 12),
         start_value=pygame.mixer.music.get_volume() * 100,
         value_range=(0, 100),
         manager=manager,
@@ -940,20 +887,20 @@ def pause_menu():
 
     # Fügt den "Fortsetzen"-Button hinzu
     continue_button = UIButton(
-        relative_rect=pygame.Rect((padding, HEIGHT - 120), (250, 80)),
+        relative_rect=pygame.Rect((WIDTH / 2 - 220, HEIGHT - 80), (200, 60)),
         text="Continue",
         manager=manager,
         container=pause_panel,
-        object_id=ObjectID(class_id='', object_id='#continue_button')
+        object_id=ObjectID(class_id='', object_id='#play_button')
     )
 
     # Fügt den "Beenden"-Button hinzu
     quit_button = UIButton(
-        relative_rect=pygame.Rect((WIDTH - padding - 200, HEIGHT - 100), (200, 60)),
+        relative_rect=pygame.Rect((WIDTH / 2 + 20, HEIGHT - 80), (200, 60)),
         text="Quit",
         manager=manager,
         container=pause_panel,
-        object_id=ObjectID(class_id='', object_id='#quit_button')
+        object_id=ObjectID(class_id='', object_id='#pause_button')
     )
 
     # Aktiviert das Menü
@@ -995,7 +942,7 @@ def pause_menu():
             manager.process_events(event)
 
         manager.update(time_delta)
-        window.fill(GAME_BG_COLOR)
+        window.blit(pause_surface, (0, 0))
         manager.draw_ui(window)
         pygame.display.flip()
 
@@ -1034,7 +981,7 @@ def game_loop():
                             gravity_strength_label.set_text(f"Gravity Strength: {GRAVITY/METER/9.81:.1f}")
                         elif event.ui_element == launch_angle_slider:
                             BALL_ANGLE = event.value
-                            launch_angle_label.set_text(f"Launch Angle: {BALL_ANGLE} degrees")
+                            launch_angle_label.set_text(f"Launch Angle: {BALL_ANGLE} deg")
 
                 # Mausereignisse nur verarbeiten, wenn das Pause-Menü nicht geöffnet ist
                 if event.type == pygame.MOUSEBUTTONDOWN:
