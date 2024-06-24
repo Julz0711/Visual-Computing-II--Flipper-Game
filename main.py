@@ -252,6 +252,9 @@ def reflect_ball(start, end, is_flipper=False, flipper_angular_velocity=0, flipp
     ball_vel[0] *= COEFFICIENT_OF_RESTITUTION
     ball_vel[1] *= COEFFICIENT_OF_RESTITUTION
 
+    # Threshold to determine significant impact
+    impact_threshold = BALL_RADIUS + 5
+
     if is_flipper and flipper_moving:
         # Calculate the distance from the flipper pivot
         distance_from_pivot = math.sqrt((ball_pos[0] - start[0])**2 + (ball_pos[1] - start[1])**2)
@@ -259,10 +262,20 @@ def reflect_ball(start, end, is_flipper=False, flipper_angular_velocity=0, flipp
         # Calculate the linear velocity at the point of collision
         linear_velocity = distance_from_pivot * flipper_angular_velocity
 
-        # Apply momentum transfer from flipper to ball
-        ball_vel[0] += normal[0] * linear_velocity
-        ball_vel[1] += normal[1] * linear_velocity
+        # Decrease velocity multiplier as the distance from the pivot increases
+        velocity_multiplier = max(0.5, 1.5 - (distance_from_pivot / FLIPPER_LENGTH))
 
+        # Apply momentum transfer from flipper to ball with adjusted multiplier
+        ball_vel[0] += normal[0] * linear_velocity * velocity_multiplier
+        ball_vel[1] += normal[1] * linear_velocity * velocity_multiplier
+
+        # Add extra velocity if the ball is very close to the flipper
+        if point_line_distance(ball_pos, start, end) <= impact_threshold:
+            extra_velocity = FLIPPER_MOTION_MOMENTUM * linear_velocity
+            ball_vel[0] += normal[0] * extra_velocity
+            ball_vel[1] += normal[1] * extra_velocity
+
+    if is_flipper:
         add_flipper_particles(ball_pos)
 
     # Apply torque based on the collision
@@ -435,7 +448,6 @@ def check_collision():
     if ball_pos[1] <= BALL_RADIUS or ball_pos[1] >= HEIGHT - BALL_RADIUS:
         ball_vel[1] = -ball_vel[1] * COEFFICIENT_OF_RESTITUTION  # Reflect and reduce velocity based on COR
         ball_pos[1] = max(min(ball_pos[1], HEIGHT - BALL_RADIUS), BALL_RADIUS)
-
 
 
 # Berechnet den Abstand eines Punktes von einer Linie, definiert durch zwei Punkte
@@ -634,7 +646,6 @@ def handle_keys():
         GAME_STARTED = False
 
 
-
 # Überprüft, ob die Maus geklickt wurde, und führt entsprechende Aktionen aus
 def handle_mouse():
     global ball_pos
@@ -700,6 +711,7 @@ high_score_value = UITextBox(
 
 # Zeichnet die grafische Benutzeroberfläche (GUI) auf das Fenster
 def draw_gui():
+    global pregame_label
     # Zeichnet den Hintergrund des GUI-Bereichs
     position_text = f'X: {ball_pos[0]:.0f} Y: {ball_pos[1]:.0f}'
     speed = math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
@@ -710,14 +722,20 @@ def draw_gui():
     speed_value.set_text(speed_text)
     high_score_value.set_text(high_score_text)
 
-"""
-pause_label = UILabel(
-    relative_rect=pygame.Rect((GAME_WIDTH + 14, 10), (UI_WIDTH - 28, 40)),
-    text="Drücke ESC zum Pausieren",
-    manager=manager,
-    object_id=ObjectID(class_id='@label', object_id='#pause_label')
-)
-"""
+    # Tooltip vor dem Spielstart
+    if not GAME_STARTED: 
+        if pregame_label is None:
+            pregame_label = UILabel(
+                relative_rect=pygame.Rect((GAME_WIDTH / 2 - 125, 25), (250, 50)),
+                text="Please place the ball",
+                manager=manager,
+                object_id=ObjectID(class_id='@label', object_id='#pregame_label')
+            )
+        draw_initial_trajectory()
+    else:
+        if pregame_label is not None:
+            pregame_label.kill()
+            pregame_label = None
 
 position_value = UITextBox(
     relative_rect=pygame.Rect((GAME_WIDTH + 12, 192), (150, 40)),
@@ -941,6 +959,9 @@ def pause_menu():
 
             manager.process_events(event)
 
+            if not GAME_STARTED:
+                pregame_label.visible = False
+
         manager.update(time_delta)
         window.blit(pause_surface, (0, 0))
         manager.draw_ui(window)
@@ -996,20 +1017,6 @@ def game_loop():
 
         # Blit the background image
         window.blit(background_image, (GAME_WIDTH, 0))
-
-        if not GAME_STARTED:
-            if pregame_label is None:
-                pregame_label = UILabel(
-                    relative_rect=pygame.Rect((GAME_WIDTH / 2 - 125, 25), (250, 50)),
-                    text="Please place the ball",
-                    manager=manager,
-                    object_id=ObjectID(class_id='@label', object_id='#pregame_label')
-                )
-            draw_initial_trajectory()
-        else:
-            if pregame_label is not None:
-                pregame_label.kill()
-                pregame_label = None
 
         if not is_pause_menu_open:
             move_ball()
