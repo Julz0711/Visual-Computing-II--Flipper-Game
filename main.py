@@ -28,7 +28,7 @@ window = pygame.display.set_mode((WIDTH, HEIGHT))
 
 # Load the background image
 background_image = pygame.image.load('data/gui_bg.png')
-pause_image = pygame.image.load('data/pause_bg.png')
+pause_image = pygame.image.load('data/pause_bg_v2.png')
 
 # Initialisiere den UI Manager und lade das Theme aus der theme.json-Datei
 manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'data/theme.json')
@@ -90,14 +90,65 @@ right_flipper_active = False
 left_flipper_color = FLIPPER_COLOUR
 right_flipper_color = FLIPPER_COLOUR
 
+# Calculate the correct positions for the flipper ramps
+flipper_length = FLIPPER_LENGTH - 10  # Adjust to ensure the ramp connects properly
+left_flipper_ramp_end = (left_flipper_pos[0] + flipper_length * math.cos(math.radians(left_flipper_angle)),
+                         left_flipper_pos[1] - flipper_length * math.sin(math.radians(left_flipper_angle)))
+right_flipper_ramp_end = (right_flipper_pos[0] + flipper_length * math.cos(math.radians(right_flipper_angle)),
+                          right_flipper_pos[1] - flipper_length * math.sin(math.radians(right_flipper_angle)))
+
+# Adjust angles so ramps face the correct direction
+left_ramp_angle = left_flipper_angle + 180
+right_ramp_angle = right_flipper_angle + 60
+
+# Function to calculate points for the triangular bumpers
+def calculate_triangle_points(x, y, base, height, angle, is_right):
+    angle_rad = math.radians(angle)
+    base_x_offset = base * math.cos(angle_rad)
+    base_y_offset = base * math.sin(angle_rad)
+    height_y_offset = height * math.cos(angle_rad)
+
+    if is_right:
+        points = [
+            (x, y),  # Bottom-left point
+            (x + base_x_offset, y - base_y_offset),  # Bottom-right point
+            (x + base_x_offset, y - base_y_offset - height_y_offset)  # Top point
+        ]
+    else:
+        points = [
+            (x, y),  # Bottom-right point
+            (x - base_x_offset, y - base_y_offset),  # Bottom-left point
+            (x - base_x_offset, y - base_y_offset - height_y_offset)  # Top point
+        ]
+    return points
+
+FLIPPER_ANGLE = 30
+
 # Initialisierung der Bumpers
 bumpers = [
-    {'pos': [125, 250], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
-    {'pos': [GAME_WIDTH - 125, 250], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
-    {'pos': [175, 450], 'radius': BUMPER_RADIUS * 1.15, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
-    {'pos': [GAME_WIDTH - 175, 450], 'radius': BUMPER_RADIUS * 1.15, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'points': TIER_3},
-    {'pos': [GAME_WIDTH / 2, 350], 'radius': BUMPER_RADIUS * 1.5, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'points': TIER_2},
-    {'pos': [GAME_WIDTH / 2, 150], 'radius': BUMPER_RADIUS * 1.33, 'color': BUMPER_COLOUR_TIER_1, 'active': False, 'timer': 0, 'points': TIER_1}
+    # Kleine Bumper oben
+    {'type': 'default', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [175, 325], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'score': TIER_3, 'show_score': True},
+    {'type': 'default', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [GAME_WIDTH - 175, 325], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'score': TIER_3, 'show_score': True},
+     {'type': 'default', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [100, 150], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'score': TIER_3, 'show_score': True},
+    {'type': 'default', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [GAME_WIDTH - 100, 150], 'radius': BUMPER_RADIUS, 'color': BUMPER_COLOUR_TIER_3, 'active': False, 'timer': 0, 'score': TIER_3, 'show_score': True},
+    # Mini Bumper Außen
+    {'type': 'decrease', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [45, 300], 'radius': BUMPER_RADIUS / 3, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'score': TIER_2, 'show_score': False},
+    {'type': 'decrease', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [GAME_WIDTH - 45, 300], 'radius': BUMPER_RADIUS / 3, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'score': TIER_2, 'show_score': False},
+    {'type': 'decrease', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [45, 375], 'radius': BUMPER_RADIUS / 3, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'score': TIER_2, 'show_score': False},
+    {'type': 'decrease', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [GAME_WIDTH - 45, 375], 'radius': BUMPER_RADIUS / 3, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'score': TIER_2, 'show_score': False},
+    {'type': 'decrease', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [45, 450], 'radius': BUMPER_RADIUS / 3, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'score': TIER_2, 'show_score': False},
+    {'type': 'decrease', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [GAME_WIDTH - 45, 450], 'radius': BUMPER_RADIUS / 3, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'score': TIER_2, 'show_score': False},
+    {'type': 'decrease', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [45, 525], 'radius': BUMPER_RADIUS / 3, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'score': TIER_2, 'show_score': False},
+    {'type': 'decrease', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [GAME_WIDTH - 45, 525], 'radius': BUMPER_RADIUS / 3, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'score': TIER_2, 'show_score': False},
+    #{'type': 'default', 'shape': BUMPER_TYPE_SQUARE, 'pos': [175, 450], 'radius': BUMPER_RADIUS * 1.15, 'color': BUMPER_COLOR_DEFAULT, 'active': False, 'timer': 0, 'score': TIER_3},
+    #{'type': 'default', 'shape': BUMPER_TYPE_SQUARE, 'pos': [GAME_WIDTH - 175, 450], 'radius': BUMPER_RADIUS * 1.15, 'color': BUMPER_COLOR_DEFAULT, 'active': False, 'timer': 0, 'score': TIER_3},
+    # Großer Bumper Mitte (500 Punkte)
+    {'type': 'decrease', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [GAME_WIDTH / 2, 400], 'radius': BUMPER_RADIUS * 1.5, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'score': TIER_2, 'show_score': True},
+    # Großer Bumper Oben (1000 Punkte)
+    {'type': 'increase', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [GAME_WIDTH / 2, 200], 'radius': BUMPER_RADIUS * 1.33, 'color': BUMPER_COLOUR_TIER_1, 'active': False, 'timer': 0, 'score': TIER_1, 'show_score': True},
+    # Dreieckige Bumper Unten
+    {'type': 'triangle', 'shape': BUMPER_TYPE_TRIANGLE, 'points': calculate_triangle_points(174, HEIGHT - 175, TRIANGLE_BUMPER_BASE, TRIANGLE_BUMPER_HEIGHT, FLIPPER_ANGLE, is_right=False), 'color': BUMPER_COLOR_TRIANGLE, 'active': False, 'timer': 0, 'score': TIER_4, 'show_score': False},
+    {'type': 'triangle', 'shape': BUMPER_TYPE_TRIANGLE, 'points': calculate_triangle_points(GAME_WIDTH - 174, HEIGHT - 175, TRIANGLE_BUMPER_BASE, TRIANGLE_BUMPER_HEIGHT, FLIPPER_ANGLE, is_right=True), 'color': BUMPER_COLOR_TRIANGLE, 'active': False, 'timer': 0, 'score': TIER_4, 'show_score': False},
 ]
 
 # Score
@@ -134,16 +185,26 @@ class Ramp:
 # Initialize ramps
 ramps = [
     # Flipper Rampen
-    Ramp((0, HEIGHT - 300), RAMP_ANGLE, RAMP_LENGTH),
-    Ramp((GAME_WIDTH, HEIGHT - 300), 180 - RAMP_ANGLE, RAMP_LENGTH),
+    Ramp(left_flipper_pos, left_ramp_angle, RAMP_LENGTH - 85),
+    Ramp(right_flipper_pos, right_ramp_angle, RAMP_LENGTH - 85),
     # Spielfeld Rampen
-    Ramp((125, 600), 120, 150),
-    Ramp((GAME_WIDTH - 125, 600), 60, 150),
-    Ramp((50, 470), 90, 250),
-    Ramp((GAME_WIDTH - 50, 470), 90, 250),
-    Ramp((75, 150), -30, 150),
-    Ramp((GAME_WIDTH - 75, 150), -150, 150),
-    #Ramp((GAME_WIDTH / 2 - 100, 400), 0, 200)
+    Ramp((174, 628), left_ramp_angle, RAMP_LENGTH - 115),
+    Ramp((GAME_WIDTH - 174, 628), right_ramp_angle, RAMP_LENGTH - 115),
+    Ramp((100, 585), 90, 350),
+    Ramp((GAME_WIDTH - 100, 585), 90, 350),
+
+    Ramp((174, 639), left_ramp_angle, RAMP_LENGTH - 102),
+    Ramp((GAME_WIDTH - 174, 639), right_ramp_angle, RAMP_LENGTH - 102),
+    Ramp((90, 590), 90, 355),
+    Ramp((GAME_WIDTH - 90, 590), 90, 355),
+
+    Ramp((GAME_WIDTH - 90, 237), 180, 10),
+    Ramp((90, 237), 0, 10),
+    Ramp((GAME_WIDTH - 172, 638), 90, 10),
+    Ramp((172, 638), 90, 10),
+    
+   # Ramp((185, 500), -30, 75),
+   # Ramp((GAME_WIDTH - 185, 500), -150, 75),
 ]
 
 
@@ -200,36 +261,65 @@ def draw_particles():
 def reflect_ball_velocity(ball_pos, ball_vel, bumper):
     global ball_angular_vel, high_score
 
-    # Berechnet den Einfallswinkel
-    angle_of_incidence = math.atan2(ball_pos[1] - bumper['pos'][1], ball_pos[0] - bumper['pos'][0])
-    
-    # Reflektiert den Geschwindigkeitsvektor
-    normal = (math.cos(angle_of_incidence), math.sin(angle_of_incidence))
+    if bumper['shape'] == BUMPER_TYPE_TRIANGLE:
+        reflect_ball_from_triangle(ball_pos, ball_vel, bumper)
+    else:
+        bumper_pos = bumper['pos']
+        angle_of_incidence = math.atan2(ball_pos[1] - bumper_pos[1], ball_pos[0] - bumper_pos[0])
+        
+        normal = (math.cos(angle_of_incidence), math.sin(angle_of_incidence))
+        dot_product = ball_vel[0] * normal[0] + ball_vel[1] * normal[1]
+        ball_vel[0] -= 2 * dot_product * normal[0]
+        ball_vel[1] -= 2 * dot_product * normal[1]
+
+        ball_vel[0] *= BUMPER_PROPERTIES[bumper['type']]['velocity_factor']
+        ball_vel[1] *= BUMPER_PROPERTIES[bumper['type']]['velocity_factor']
+        
+        collision_vector = [ball_pos[0] - bumper_pos[0], ball_pos[1] - bumper_pos[1]]
+        torque = (collision_vector[0] * ball_vel[1] - collision_vector[1] * ball_vel[0]) / (BALL_RADIUS ** 2)
+        ball_angular_vel += torque
+
+        distance = math.hypot(ball_pos[0] - bumper_pos[0], ball_pos[1] - bumper_pos[1])
+        overlap = BALL_RADIUS + bumper['radius'] - distance
+        if overlap > 0:
+            ball_pos[0] += overlap * normal[0]
+            ball_pos[1] += overlap * normal[1]
+
+    add_particles(ball_pos)
+    high_score += bumper['score']
+
+    bumper['timer'] = 10
+
+
+def reflect_ball_from_triangle(ball_pos, ball_vel, start, end):
+    global ball_angular_vel, high_score
+
+    normal = get_line_normal(start, end)
+    midpoint = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
+    ball_to_midpoint = (midpoint[0] - ball_pos[0], midpoint[1] - ball_pos[1])
+
+    if (ball_to_midpoint[0] * normal[0] + ball_to_midpoint[1] * normal[1]) > 0:
+        normal = (-normal[0], -normal[1])
+
     dot_product = ball_vel[0] * normal[0] + ball_vel[1] * normal[1]
     ball_vel[0] -= 2 * dot_product * normal[0]
     ball_vel[1] -= 2 * dot_product * normal[1]
 
-    # Multipliziert die Geschwindigkeit mit dem Bumper-Bounce-Faktor
-    ball_vel[0] *= BUMPER_BOUNCE
-    ball_vel[1] *= BUMPER_BOUNCE
-    
-    # Wendet Drehmoment basierend auf der Kollision an
-    collision_vector = [ball_pos[0] - bumper['pos'][0], ball_pos[1] - bumper['pos'][1]]
+    ball_vel[0] *= BUMPER_PROPERTIES['triangle']['velocity_factor']
+    ball_vel[1] *= BUMPER_PROPERTIES['triangle']['velocity_factor']
+
+    collision_vector = [ball_pos[0] - midpoint[0], ball_pos[1] - midpoint[1]]
     torque = (collision_vector[0] * ball_vel[1] - collision_vector[1] * ball_vel[0]) / (BALL_RADIUS ** 2)
     ball_angular_vel += torque
 
-    # Stellt sicher, dass die Kugel nicht zu weit in den Bumper eindringt
-    distance = math.hypot(ball_pos[0] - bumper['pos'][0], ball_pos[1] - bumper['pos'][1])
-    overlap = BALL_RADIUS + bumper['radius'] - distance
+    distance = point_line_distance(ball_pos, start, end)
+    overlap = BALL_RADIUS - distance
     if overlap > 0:
         ball_pos[0] += overlap * normal[0]
         ball_pos[1] += overlap * normal[1]
 
-    # Fügt Partikel an der Kollisionsstelle hinzu
     add_particles(ball_pos)
-
-    # Update high score
-    high_score += bumper['points']
+    high_score += 100
 
 
 def reflect_ball(start, end, is_flipper=False, flipper_angular_velocity=0, flipper_moving=False):
@@ -343,16 +433,7 @@ def move_ball():
     ball_pos[0] = max(min(ball_pos[0], GAME_WIDTH - BALL_RADIUS), BALL_RADIUS)
     ball_pos[1] = max(min(ball_pos[1], HEIGHT - BALL_RADIUS), BALL_RADIUS)
     
-    # Kollisionslogik für Bumper
-    for bumper in bumpers:
-        if math.hypot(ball_pos[0] - bumper['pos'][0], ball_pos[1] - bumper['pos'][1]) < BALL_RADIUS + bumper['radius']:
-            if not bumper['active']:
-                bumper['active'] = True
-                bumper['timer'] = 10
-            reflect_ball_velocity(ball_pos, ball_vel, bumper)
-
-    # Überprüft, ob die Kugel auf den Flippern rollt
-    # check_ball_on_flipper()
+    check_bumper_collision(ball_pos, ball_vel)
 
 
 
@@ -449,6 +530,51 @@ def check_collision():
         ball_vel[1] = -ball_vel[1] * COEFFICIENT_OF_RESTITUTION  # Reflect and reduce velocity based on COR
         ball_pos[1] = max(min(ball_pos[1], HEIGHT - BALL_RADIUS), BALL_RADIUS)
 
+        
+# Check collisions with all ramps
+def check_ramp_collision():
+    global ball_pos, ball_vel
+    for ramp in ramps:
+        ramp.check_collision(ball_pos, ball_vel)
+        
+
+def check_bumper_collision(ball_pos, ball_vel):
+    for bumper in bumpers:
+        if bumper['shape'] == BUMPER_TYPE_CIRCLE or bumper['shape'] == BUMPER_TYPE_SQUARE:
+            if math.hypot(ball_pos[0] - bumper['pos'][0], ball_pos[1] - bumper['pos'][1]) < BALL_RADIUS + bumper['radius']:
+                if not bumper['active']:
+                    bumper['active'] = True
+                    bumper['timer'] = 10
+                reflect_ball_velocity(ball_pos, ball_vel, bumper)
+        elif bumper['shape'] == BUMPER_TYPE_TRIANGLE:
+            for i in range(3):
+                start = bumper['points'][i]
+                end = bumper['points'][(i + 1) % 3]
+                if point_line_distance(ball_pos, start, end) <= BALL_RADIUS:
+                    if not bumper['active']:
+                        bumper['active'] = True
+                        bumper['timer'] = 10
+                    reflect_ball_from_triangle(ball_pos, ball_vel, start, end)
+                    break
+
+            if point_in_triangle(ball_pos[0], ball_pos[1], bumper['points']):
+                for i in range(3):
+                    start = bumper['points'][i]
+                    end = bumper['points'][(i + 1) % 3]
+                    if point_line_distance(ball_pos, start, end) > BALL_RADIUS:
+                        reflect_ball_from_triangle(ball_pos, ball_vel, start, end)
+                        break
+
+        if bumper['active']:
+            bumper['timer'] -= 1
+            if bumper['timer'] <= 0:
+                bumper['active'] = False
+
+
+
+###
+### Helper Funktionen
+###
 
 # Berechnet den Abstand eines Punktes von einer Linie, definiert durch zwei Punkte
 def point_line_distance(point, start, end):
@@ -456,35 +582,55 @@ def point_line_distance(point, start, end):
     sx, sy = start
     ex, ey = end
 
-    # Vektor der Linie
+    # Line segment vector
     line_vec = (ex - sx, ey - sy)
     
-    # Vektor vom Startpunkt der Linie zum Punkt
+    # Vector from start of line segment to the point
     point_vec = (px - sx, py - sy)
    
-    # Länge der Linie
+    # Length of the line segment
     line_len = math.sqrt(line_vec[0]**2 + line_vec[1]**2)
     
-    # Einheitlicher Vektor der Linie
+    # Normalized line vector
     line_unitvec = (line_vec[0] / line_len, line_vec[1] / line_len)
 
-    # Projektion der Punktkoordinate auf die Linie
+    # Projection of point vector onto the line
     proj_length = point_vec[0] * line_unitvec[0] + point_vec[1] * line_unitvec[1]
 
-    # Beschränkung der projizierten Länge auf die Länge der Linie
+    # Constrain the projection length to the length of the line segment
     proj_length = max(0, min(proj_length, line_len))
     nearest = (sx + line_unitvec[0] * proj_length, sy + line_unitvec[1] * proj_length)
 
-    # Berechnet den minimalen Abstand zwischen dem Punkt und der Linie
+    # Calculate the distance from the point to the nearest point on the line segment
     dist = math.sqrt((px - nearest[0])**2 + (py - nearest[1])**2)
     return dist
 
 
-# Check collisions with all ramps
-def check_ramp_collision():
-    global ball_pos, ball_vel
-    for ramp in ramps:
-        ramp.check_collision(ball_pos, ball_vel)
+# Check if point is inside triangle
+def point_in_triangle(px, py, triangle_points):
+    ax, ay = triangle_points[0]
+    bx, by = triangle_points[1]
+    cx, cy = triangle_points[2]
+
+    # Compute vectors
+    v0 = (cx - ax, cy - ay)
+    v1 = (bx - ax, by - ay)
+    v2 = (px - ax, py - ay)
+
+    # Compute dot products
+    dot00 = v0[0] * v0[0] + v0[1] * v0[1]
+    dot01 = v0[0] * v1[0] + v0[1] * v1[1]
+    dot02 = v0[0] * v2[0] + v0[1] * v2[1]
+    dot11 = v1[0] * v1[0] + v1[1] * v1[1]
+    dot12 = v1[0] * v2[0] + v1[1] * v2[1]
+
+    # Compute barycentric coordinates
+    inv_denom = 1 / (dot00 * dot11 - dot01 * dot01)
+    u = (dot11 * dot02 - dot01 * dot12) * inv_denom
+    v = (dot00 * dot12 - dot01 * dot02) * inv_denom
+
+    # Check if point is in triangle
+    return (u >= 0) and (v >= 0) and (u + v < 1)
 
 
 
@@ -517,30 +663,69 @@ def draw_flipper(position, angle, is_right, color):
     pygame.draw.line(window, color, (start_x, start_y), (end_x, end_y), FLIPPER_WIDTH)
 
 
+# Draw a triangular bumper with custom points
+def draw_triangle_bumper(window, bumper):
+    if bumper['active']:
+        scale_factor = BUMPER_TRIANGULAR_SCALE
+    else:
+        scale_factor = 1
+
+    # Calculate the centroid of the triangle
+    centroid_x = sum(point[0] for point in bumper['points']) / 3
+    centroid_y = sum(point[1] for point in bumper['points']) / 3
+
+    scaled_points = [
+        (
+            int(centroid_x + (point[0] - centroid_x) * scale_factor),
+            int(centroid_y + (point[1] - centroid_y) * scale_factor)
+        )
+        for point in bumper['points']
+    ]
+
+    pygame.draw.polygon(window, pygame.Color(bumper['color']), scaled_points)
+    centroid_x = sum(point[0] for point in scaled_points) / 3
+    centroid_y = sum(point[1] for point in scaled_points) / 3
+
+    if bumper['show_score']:
+        label = custom_font.render(str(bumper['score']), True, pygame.Color('#121212'))
+        label_rect = label.get_rect(center=(int(centroid_x), int(centroid_y) + 2))
+        window.blit(label, label_rect)
+
+
 
 # Zeichnet alle Bumper, basierend auf ihrem Aktivierungsstatus
 def draw_bumpers():
-    # Durchläuft alle Bumper und zeichnet sie je nach ihrem Aktivierungsstatus.
     for bumper in bumpers:
-        # Wenn der Bumper aktiv ist, zeichne ihn vergrößert
-        if bumper['active']:
-            # Vergrößerungsfaktor für aktive Bumper
-            scaled_radius = int(bumper['radius'] * BUMPER_SCALE)
-            pygame.draw.circle(window, bumper['color'], (int(bumper['pos'][0]), int(bumper['pos'][1])), scaled_radius)
+        if bumper['shape'] == BUMPER_TYPE_CIRCLE:
+            if bumper['active']:
+                scaled_radius = int(bumper['radius'] * BUMPER_SCALE)
+                pygame.draw.circle(window, bumper['color'], (int(bumper['pos'][0]), int(bumper['pos'][1])), scaled_radius)
 
-            # Verringert den Timer, der bestimmt, wie lange ein Bumper aktiv bleibt
-            bumper['timer'] -= 1
+                bumper['timer'] -= 1
+                if bumper['timer'] <= 0:
+                    bumper['active'] = False
+            else:
+                pygame.draw.circle(window, bumper['color'], (int(bumper['pos'][0]), int(bumper['pos'][1])), bumper['radius'])
+        elif bumper['shape'] == BUMPER_TYPE_SQUARE:
+            if bumper['active']:
+                scaled_radius = int(bumper['radius'] * BUMPER_SCALE)
+                pygame.draw.rect(window, pygame.Color(bumper['color']), 
+                                 (bumper['pos'][0] - scaled_radius, bumper['pos'][1] - scaled_radius, scaled_radius * 2, scaled_radius * 2))
+                
+                bumper['timer'] -= 1
+                if bumper['timer'] <= 0:
+                    bumper['active'] = False
+            else:
+                pygame.draw.rect(window, pygame.Color(bumper['color']), 
+                                 (bumper['pos'][0] - bumper['radius'], bumper['pos'][1] - bumper['radius'], bumper['radius'] * 2, bumper['radius'] * 2))
+        elif bumper['shape'] == BUMPER_TYPE_TRIANGLE:
+            draw_triangle_bumper(window, bumper)
+        
+        if bumper['show_score']:
+            label = custom_font.render(str(bumper['score']), True, pygame.Color('#121212'))
+            label_rect = label.get_rect(center=(int(bumper['pos'][0]), int(bumper['pos'][1]) + 2))
+            window.blit(label, label_rect)
 
-            # Deaktiviert den Bumper, wenn der Timer abgelaufen ist
-            if bumper['timer'] <= 0:
-                bumper['active'] = False
-        else:
-            # Zeichne den Bumper in normaler Größe, wenn er nicht aktiv ist
-            pygame.draw.circle(window, bumper['color'], (int(bumper['pos'][0]), int(bumper['pos'][1])), bumper['radius'])
-    
-        label = custom_font.render(str(bumper['points']), True, pygame.Color('#121212'))
-        label_rect = label.get_rect(center=(int(bumper['pos'][0]), int(bumper['pos'][1]) + 2))
-        window.blit(label, label_rect)
 
 
 # Zeichnet die Rampen auf das Spielfeld
@@ -856,7 +1041,7 @@ def pause_menu():
     dropdown = UIDropDownMenu(
         options_list=['White', 'Red', 'Green', 'Blue', 'Purple', 'Orange', 'Yellow'],
         starting_option=ball_color,
-        relative_rect=pygame.Rect(padding + 24, 435, dropdown_width, 50),
+        relative_rect=pygame.Rect(padding + 24, 480, dropdown_width, 50),
         manager=manager,
         container=pause_panel,
         object_id=ObjectID(class_id='@dropdown', object_id='#ball_dropdown')
@@ -876,7 +1061,7 @@ def pause_menu():
 
     # Vorschau der Kugel
     ball_preview_label = UILabel(
-        relative_rect=pygame.Rect(padding + dropdown_width + 32, 435, ball_preview_width, ball_preview_width),
+        relative_rect=pygame.Rect(padding + dropdown_width + 32, 480, ball_preview_width, ball_preview_width),
         text="",
         manager=manager,
         container=pause_panel,
@@ -887,7 +1072,7 @@ def pause_menu():
     update_ball_preview(ball_color)
 
     volume_value_label = UILabel(
-        relative_rect=pygame.Rect(dropdown_width + padding + 32, 592, 50, SLIDER_HEIGHT + 12 - 4),
+        relative_rect=pygame.Rect(dropdown_width + padding + 32, 627, 50, SLIDER_HEIGHT + 12 - 4),
         text=str(int(pygame.mixer.music.get_volume() * 100)),
         manager=manager,
         container=pause_panel,
@@ -895,7 +1080,7 @@ def pause_menu():
     )
 
     volume_slider = UIHorizontalSlider(
-        relative_rect=pygame.Rect(padding + 24, 590, dropdown_width, SLIDER_HEIGHT + 12),
+        relative_rect=pygame.Rect(padding + 24, 625, dropdown_width, SLIDER_HEIGHT + 12),
         start_value=pygame.mixer.music.get_volume() * 100,
         value_range=(0, 100),
         manager=manager,

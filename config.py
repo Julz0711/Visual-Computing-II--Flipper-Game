@@ -19,9 +19,9 @@ VELOCITY_THRESHOLD = .1
 BALL_START_Y = 500
 
 # Flipper
-FLIPPER_LENGTH = 125
+FLIPPER_LENGTH = 130
 FLIPPER_WIDTH = 5
-FLIPPER_IMPULSE = 1 * METER
+FLIPPER_IMPULSE = 1.5 * METER
 FLIPPER_COLOUR = '#389ebf'
 # Step for changing the flipper angle
 FLIPPER_ANGLE_STEP = 5
@@ -34,13 +34,38 @@ FLIPPER_MOTION_MOMENTUM = 1.05
 BUMPER_RADIUS = 25
 BUMPER_BOUNCE = 1.15
 BUMPER_SCALE = 1.25
+BUMPER_TRIANGULAR_SCALE = 1
 BUMPER_COLOUR = '#862dc6'
-BUMPER_COLOUR_TIER_1 = '#862dc6'
+BUMPER_COLOUR_TIER_1 = '#CCA966'
 BUMPER_COLOUR_TIER_2 = (56, 158, 191)
 BUMPER_COLOUR_TIER_3 = (42, 254, 183)
 TIER_1 = 1000
 TIER_2 = 500
 TIER_3 = 200
+TIER_4 = 100
+
+# Bumper Types
+BUMPER_TYPE_CIRCLE = 'circle'
+BUMPER_TYPE_SQUARE = 'square'
+BUMPER_TYPE_TRIANGLE = 'triangle'
+
+# Define the size for triangular bumpers
+TRIANGLE_BUMPER_BASE = 82  # Base width of the triangle
+TRIANGLE_BUMPER_HEIGHT = 50  # Height of the triangle
+
+# Bumper Colors
+BUMPER_COLOR_DEFAULT = '#862dc6'
+BUMPER_COLOR_VELOCITY_INCREASE = (56, 158, 191)
+BUMPER_COLOR_VELOCITY_DECREASE = (42, 254, 183) 
+BUMPER_COLOR_TRIANGLE = '#862dc6'
+
+# Bumper Properties
+BUMPER_PROPERTIES = {
+    'default': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': 1.05},
+    'increase': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': 2},
+    'decrease': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': .75},
+    'triangle': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': 1.2},
+}
 
 # Gravity
 GRAVITY = 9.81 * METER * GRAVITY_STRENGTH
@@ -74,7 +99,7 @@ SLIDER_HANDLE_COLOR = (150, 150, 150)
 SLIDER_TEXT_COLOR = (255, 255, 255)
 
 # Dampening
-DAMPING_FACTOR = 0.98
+DAMPING_FACTOR = 0.985
 
 # Elastischer Stoß
 COEFFICIENT_OF_RESTITUTION = .98
