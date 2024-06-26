@@ -17,14 +17,16 @@ BALL_RADIUS = 15
 BALL_ANGLE = 0
 VELOCITY_THRESHOLD = .1
 BALL_START_Y = 500
+MAX_VELOCITY = 15 * METER
 
 # Flipper
-FLIPPER_LENGTH = 130
+FLIPPER_LENGTH = 100
 FLIPPER_WIDTH = 5
-FLIPPER_IMPULSE = 1.5 * METER
+FLIPPER_IMPULSE = 1 * METER
 FLIPPER_COLOUR = '#389ebf'
+FLIPPER_ANGLE = 30
 # Step for changing the flipper angle
-FLIPPER_ANGLE_STEP = 5
+FLIPPER_ANGLE_STEP = 7
 FLIPPER_MAX_ANGLE = 20
 FLIPPER_COLOUR = (56, 158, 191)
 ACTIVE_FLIPPER_COLOUR = (42, 254, 183)
@@ -35,8 +37,8 @@ BUMPER_RADIUS = 25
 BUMPER_BOUNCE = 1.15
 BUMPER_SCALE = 1.25
 BUMPER_TRIANGULAR_SCALE = 1
-BUMPER_COLOUR = '#862dc6'
-BUMPER_COLOUR_TIER_1 = '#CCA966'
+BUMPER_COLOUR = (134, 45, 198)
+BUMPER_COLOUR_TIER_1 = (204, 169, 102)
 BUMPER_COLOUR_TIER_2 = (56, 158, 191)
 BUMPER_COLOUR_TIER_3 = (42, 254, 183)
 TIER_1 = 1000
@@ -46,7 +48,6 @@ TIER_4 = 100
 
 # Bumper Types
 BUMPER_TYPE_CIRCLE = 'circle'
-BUMPER_TYPE_SQUARE = 'square'
 BUMPER_TYPE_TRIANGLE = 'triangle'
 
 # Define the size for triangular bumpers
@@ -54,16 +55,18 @@ TRIANGLE_BUMPER_BASE = 82  # Base width of the triangle
 TRIANGLE_BUMPER_HEIGHT = 50  # Height of the triangle
 
 # Bumper Colors
-BUMPER_COLOR_DEFAULT = '#862dc6'
+BUMPER_COLOR_DEFAULT = (134, 45, 198)
 BUMPER_COLOR_VELOCITY_INCREASE = (56, 158, 191)
 BUMPER_COLOR_VELOCITY_DECREASE = (42, 254, 183) 
-BUMPER_COLOR_TRIANGLE = '#862dc6'
+BUMPER_COLOR_TRIANGLE = (134, 45, 198)
+MAX_BUMPER_SPEED = 6 * METER
 
 # Bumper Properties
 BUMPER_PROPERTIES = {
-    'default': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': 1.05},
-    'increase': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': 2},
-    'decrease': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': .75},
+    'default': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': 1.1},
+    'increase': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': 1.5},
+    'teleport': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': 3},
+    'decrease': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': .85},
     'triangle': {'color': BUMPER_COLOR_DEFAULT, 'velocity_factor': 1.2},
 }
 
@@ -75,7 +78,7 @@ dt = 1 / 60
 
 # Farben
 WHITE = (250, 250, 250)
-BLACK = (5, 5, 5)
+BLACK = (3, 3, 3)
 RED = (255, 0, 0)
 GREY = (25, 25, 25)
 BLUE = (0, 0, 255)
@@ -84,6 +87,7 @@ PURPLE = (255, 0, 255)
 CYAN = (0, 255, 255)
 GAME_BG_COLOR = (20, 20, 20)
 GUI_BG_COLOR = (5, 5, 5)
+LIGHT_GREY = (35, 35, 35)
 
 # Slider
 SLIDER_WIDTH = 250
@@ -106,7 +110,8 @@ COEFFICIENT_OF_RESTITUTION = .98
 
 # Rampen
 RAMP_ANGLE = -60
-RAMP_LENGTH = 200
+RAMP_LENGTH = 155
+RAMP_WIDTH = 12
 
 # Game- und GUI-Window Trennlinie
 SEPARATOR_WIDTH = 8
@@ -116,3 +121,10 @@ SEPARATOR_COLOR = (0, 0, 0)
 
 MIN_VELOCITY_THRESHOLD = 10
 COLLISION_ANGLE_THRESHOLD = 10
+
+# Line Score Effect
+FLASHING_TIME = 200
+
+# Teleport
+HOLE_RADIUS = BALL_RADIUS * 1.35 
+PARTICLE_COLOUR_BLACK_HOLE = '#6D537C'
