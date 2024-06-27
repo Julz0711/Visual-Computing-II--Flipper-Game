@@ -1,5 +1,6 @@
 # Konstanten
 GAME_STARTED = False
+game_freeze = False
 
 # Umrechnungsfaktor 100 Pixel = 1 Meter
 METER = 100

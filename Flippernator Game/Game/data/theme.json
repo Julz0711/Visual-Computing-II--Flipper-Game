@@ -1,0 +1,527 @@
+{
+  "fonts": {
+    "default": {
+      "default": "data/PressStart2P-Regular.ttf"
+    }
+  },
+  "horizontal_slider": {
+    "colours": {
+      "normal_bg": "#ff0000",
+      "hovered_bg": "#ff0000",
+      "disabled_bg": "#ff0000",
+      "selected_bg": "#ff0000",
+      "active_bg": "#ff0000",
+      "dark_bg": "#15191e",
+      "normal_text": "#c5cbd8",
+      "hovered_text": "#FFFFFF",
+      "selected_text": "#FFFFFF",
+      "disabled_text": "#6d736f",
+      "dark_border": "ff0000"
+    },
+    "font": "default",
+    "misc": {
+      "shape": "rectangle",
+      "enable_arrow_buttons": "0",
+      "sliding_button_width": "30"
+    }
+  },
+  "horizontal_slider.button": {
+    "colors": {
+      "dark_bg": "#ffffff",
+      "normal_bg": "#ffffff"
+    },
+    "misc": {
+      "shape": "rectangle"
+    }
+  },
+  "horizontal_slider.#sliding_button": {
+    "colours": {
+      "dark_bg": "#ffffff",
+      "hovered_bg": "#ffffff",
+      "active_bg": "#aaaaaa"
+    }
+  },
+  "#volume_slider": {
+    "colours": {
+      "dark_bg": "#121212",
+      "normal_bg": "#121212",
+      "normal_border": "#c3c3c3",
+      "dark_border": "#c3c3c3"
+    },
+    "misc": {
+      "border_width": 1,
+      "shadow_width": 0
+    }
+  },
+  "#volume_slider.#sliding_button": {
+    "colours": {
+      "normal_bg": "#c3c3c3"
+    },
+    "misc": {
+      "border_width": 0,
+      "shadow_width": 0
+    }
+  },
+  "#ii_slider": {
+    "colours": {
+      "normal_bg": "#f8f8f8",
+      "normal_border": "#f8f8f8"
+    },
+    "misc": {
+      "border_width": 1
+    }
+  },
+  "#gs_slider": {
+    "colours": {
+      "normal_bg": "#f8f8f8",
+      "normal_border": "#f8f8f8"
+    }
+  },
+  "#la_slider": {
+    "colours": {
+      "normal_bg": "#f8f8f8",
+      "normal_border": "#f8f8f8"
+    }
+  },
+  "#ii_slider.#sliding_button": {
+    "colours": {
+      "normal_bg": "#f8f8f8",
+      "normal_border": "#f8f8f8"
+    },
+    "misc": {
+      "border_width": 0
+    }
+  },
+  "#gs_slider.#sliding_button": {
+    "colours": {
+      "normal_bg": "#f8f8f8",
+      "normal_border": "#f8f8f8"
+    },
+    "misc": {
+      "border_width": 0
+    }
+  },
+  "#la_slider.#sliding_button": {
+    "colours": {
+      "normal_bg": "#f8f8f8",
+      "normal_border": "#f8f8f8"
+    },
+    "misc": {
+      "border_width": 0
+    }
+  },
+  "label": {
+    "colours": {
+      "dark_bg": "#cccccc",
+      "normal_text": "#121212"
+    },
+    "font": {
+      "size": "16",
+      "bold": "0",
+      "italic": "0"
+    },
+    "misc": {
+      "border_width": 0,
+      "shadow_width": 1,
+      "text_horiz_alignment": "center",
+      "text_vert_alignment": "center"
+    }
+  },
+  "#pregame_label": {
+    "colours": {
+      "dark_bg": "#121212",
+      "normal_text": "#f8f8f8"
+    },
+    "font": {
+      "size": "20",
+      "bold": "1",
+      "italic": "0"
+    }
+  },
+  "#ii_label": {
+    "colours": {
+      "normal_bg": "#00000000",
+      "dark_bg": "#00000000",
+      "normal_text": "#f8f8f8"
+    },
+    "font": {
+      "size": "18",
+      "bold": "1",
+      "italic": "0"
+    },
+    "misc": {
+      "text_horiz_alignment": "left"
+    }
+  },
+  "#gs_label": {
+    "colours": {
+      "normal_bg": "#00000000",
+      "dark_bg": "#00000000",
+      "normal_text": "#f8f8f8"
+    },
+    "font": {
+      "size": "18",
+      "bold": "1",
+      "italic": "0"
+    },
+    "misc": {
+      "text_horiz_alignment": "left"
+    }
+  },
+  "#la_label": {
+    "colours": {
+      "normal_bg": "#00000000",
+      "dark_bg": "#00000000",
+      "normal_text": "#f8f8f8"
+    },
+    "font": {
+      "size": "18",
+      "bold": "1",
+      "italic": "0"
+    },
+    "misc": {
+      "text_horiz_alignment": "left"
+    }
+  },
+  "#menu_title": {
+    "colours": {
+      "dark_bg": "#12121200",
+      "normal_text": "#f8f8f8"
+    },
+    "font": {
+      "size": "36",
+      "bold": "1",
+      "italic": "0"
+    },
+    "misc": {
+      "text_horiz_alignment": "center",
+      "text_vert_alignment": "center",
+      "padding": "8,4"
+    }
+  },
+  "#ball_label": {
+    "colours": {
+      "dark_bg": "#121212",
+      "normal_text": "#f8f8f8",
+      "normal_border": "#121212"
+    },
+    "font": {
+      "size": "24",
+      "bold": "1",
+      "italic": "0"
+    },
+    "misc": {
+      "text_horiz_alignment": "left",
+      "text_vert_alignment": "top",
+      "padding": "8,4",
+      "border_width": 0
+    }
+  },
+  "#pause_label": {
+    "colours": {
+      "dark_bg": "#121212",
+      "normal_text": "#FDD878"
+    },
+    "font": {
+      "size": "18",
+      "bold": "1",
+      "italic": "0"
+    }
+  },
+  "#position_value": {
+    "colours": {
+      "dark_bg": "#41414100",
+      "normal_text": "#f8f8f8"
+    },
+    "font": {
+      "size": "20",
+      "bold": "1"
+    },
+    "misc": {
+      "shadow_width": "0",
+      "border_width": "0",
+      "text_vert_alignment": "center",
+      "text_horiz_alignment": "center"
+    }
+  },
+  "#speed_value": {
+    "colours": {
+      "dark_bg": "#41414100",
+      "normal_text": "#f8f8f8"
+    },
+    "font": {
+      "size": "24",
+      "bold": "1"
+    },
+    "misc": {
+      "shadow_width": "0",
+      "border_width": "0",
+      "text_vert_alignment": "center",
+      "text_horiz_alignment": "center"
+    }
+  },
+  "#volume_value": {
+    "colours": {
+      "normal_bg": "#c3c3c3",
+      "hovered_bg": "#c3c3c3",
+      "normal_text": "#121212",
+      "hovered_text": "#121212"
+    },
+    "font": {
+      "size": "18",
+      "bold": "1"
+    }
+  },
+  "button": {
+    "colours": {
+      "normal_bg": "#f8f8f8",
+      "hovered_bg": "#b6b6b6",
+      "normal_text": "#121212",
+      "hovered_text": "#121212",
+      "selected_bg": "#121212",
+      "active_bg": "#121212",
+      "selected_border": "#acacac",
+      "active_border": "#acacac"
+    },
+    "font": {
+      "size": "18",
+      "bold": "1"
+    },
+    "misc": {
+      "border_width": 2,
+      "shape": "rectangle",
+      "state_transitions": {
+        "normal_hovered": "0.1",
+        "hovered_normal": "0.1"
+      }
+    }
+  },
+  "#play_button": {
+    "colours": {
+      "normal_bg": "#2AFEB7",
+      "hovered_bg": "#24B685",
+      "normal_border": "#24B685",
+      "hovered_border": "#24B685",
+      "normal_text": "#121212",
+      "hovered_text": "#121212"
+    },
+    "font": {
+      "size": "24",
+      "bold": "1"
+    },
+    "misc": {
+      "border_width": "4",
+      "state_transitions": {
+        "normal_hovered": "0.1",
+        "hovered_normal": "0.1"
+      }
+    }
+  },
+  "#pause_button": {
+    "colours": {
+      "normal_bg": "#AC4BE0",
+      "hovered_bg": "#6E23A4",
+      "normal_border": "#6E23A4",
+      "hovered_border": "#6E23A4",
+      "normal_text": "#121212",
+      "hovered_text": "#121212"
+    },
+    "misc": {
+      "border_width": "4",
+      "state_transitions": {
+        "normal_hovered": "0.1",
+        "hovered_normal": "0.1"
+      }
+    }
+  },
+  "#reset_button": {
+    "colours": {
+      "normal_bg": "#389EBF",
+      "hovered_bg": "#26728B",
+      "normal_border": "#26728B",
+      "hovered_border": "#26728B",
+      "normal_text": "#121212",
+      "hovered_text": "#121212"
+    },
+    "misc": {
+      "border_width": "4",
+      "state_transitions": {
+        "normal_hovered": "0.1",
+        "hovered_normal": "0.1"
+      }
+    }
+  },
+  "panel": {
+    "colours": {
+      "dark_bg": "#43434300",
+      "normal_border": "#99999900"
+    },
+    "misc": {
+      "shape": "rectangle",
+      "border_width": "0",
+      "shadow_width": "0"
+    }
+  },
+  "#menu_label": {
+    "colours": {
+      "dark_bg": "#434343",
+      "normal_text": "#f8f8f8",
+      "normal_border": "#221F29"
+    },
+    "font": {
+      "size": "20",
+      "bold": "0",
+      "italic": "0"
+    },
+    "misc": {
+      "text_horiz_alignment": "left",
+      "text_vert_alignment": "center"
+    }
+  },
+  "#controls_list": {
+    "colours": {
+      "dark_bg": "#12121200",
+      "normal_text": "#f8f8f8",
+      "normal_border": "#12121200"
+    },
+    "font": {
+      "size": "20",
+      "bold": "0",
+      "italic": "0"
+    },
+    "misc": {
+      "padding": "10,10",
+      "shadow_width": "0"
+    }
+  },
+  "#ball_dropdown": {
+    "colours": {
+      "normal_bg": "#121212",
+      "dark_bg": "#121212",
+      "normal_border": "#121212",
+      "hovered_bg": "#b6b6b6"
+    },
+    "misc": {
+      "expand_direction": "down",
+      "border_width": "0",
+      "open_button_width": "48"
+    }
+  },
+  "#baal_dropdown.#drop_down_options_list": {
+    "colours": {
+      "dark_bg": "#121212",
+      "normal_bg": "#121212",
+      "normal_border": "#121212",
+      "hovered_bg": "#202020"
+    },
+    "misc": {
+      "border_width": "0"
+    }
+  },
+  "#ball_dropdown.#selected_option": {
+    "colours": {
+      "normal_bg": "#121212",
+      "hovered_bg": "#202020",
+      "normal_text": "#FFFFFF",
+      "hovered_text": "#FFFFFF"
+    },
+    "misc": {
+      "border_width": "0"
+    }
+  },
+  "#ball_preview": {
+    "colours": {
+      "normal_bg": "#ffffff"
+    },
+    "misc": {
+      "border_width": 0,
+      "border_radius": 50,
+      "shape": "rectangle"
+    }
+  },
+  "#continue_button": {
+    "colours": {
+      "normal_bg": "#EBDC5A",
+      "hovered_bg": "#968B27",
+      "normal_text": "#121212",
+      "hovered_text": "#121212"
+    },
+    "font": {
+      "size": "24",
+      "bold": "1"
+    },
+    "misc": {
+      "state_transitions": {
+        "normal_hovered": "0.1",
+        "hovered_normal": "0.1"
+      }
+    }
+  },
+  "#quit_button": {
+    "colours": {
+      "normal_bg": "#b6b6b6",
+      "hovered_bg": "#a2a2a2",
+      "normal_text": "#121212",
+      "hovered_text": "#121212"
+    },
+    "font": {
+      "size": "20",
+      "bold": "1"
+    },
+    "misc": {
+      "border_width": "0",
+      "shadow_width": "0",
+      "state_transitions": {
+        "normal_hovered": "0.1",
+        "hovered_normal": "0.1"
+      }
+    }
+  },
+  "#endgame_title": {
+    "font": {
+      "size": "80",
+      "bold": "1"
+    }
+  },
+  "#final_score_label": {
+    "colours": {
+      "dark_bg": "#12121200",
+      "normal_text": "#f8f8f8",
+      "normal_border": "#121212"
+    },
+    "font": {
+      "size": "40",
+      "bold": "1"
+    }
+  },
+  "#score_value": {
+    "colours": {
+      "dark_bg": "#12121200",
+      "normal_text": "#f8f8f8"
+    },
+    "font": {
+      "size": "42",
+      "bold": "1"
+    },
+    "misc": {
+      "shadow_width": "0",
+      "border_width": "0",
+      "text_vert_alignment": "center",
+      "text_horiz_alignment": "center"
+    }
+  },
+  "#high_score_value": {
+    "colours": {
+      "dark_bg": "#12121200",
+      "normal_text": "#f8f8f8"
+    },
+    "font": {
+      "size": "16",
+      "bold": "1"
+    },
+    "misc": {
+      "shadow_width": "0",
+      "border_width": "0"
+    }
+  }
+}

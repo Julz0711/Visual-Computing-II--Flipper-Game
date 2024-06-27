@@ -5,7 +5,7 @@ import random
 import pygame
 import sys
 import math
-import time
+import os
 from pygame.locals import *
 from config import *
 import pygame_gui
@@ -13,6 +13,30 @@ import pygame_gui.data
 from pygame_gui.elements import UIHorizontalSlider, UILabel, UITextBox, UIDropDownMenu, UIButton, UIPanel
 from pygame_gui.core import ObjectID
 from endgame import end_game_screen
+
+
+
+###
+### Resources ###
+###
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+config_file = resource_path('config.py')
+highscore_file = resource_path('highscore.txt')
+icon_file = resource_path('icon.ico')
+gameover_bg = pygame.image.load(resource_path('data/gameover_bg.png'))
+gui_bg = pygame.image.load(resource_path('data/gui_bg_v2.png'))
+pause_bg = pygame.image.load(resource_path('data/pause_bg_v2.png'))
+pinbolchill_mp3 = resource_path('data/pinbolchill.mp3')
+press_start_font = resource_path('data/PressStart2P-Regular.ttf')
+theme_file = resource_path('data/theme.json')
 
 
 
@@ -911,7 +935,7 @@ def update_flippers():
 
 # Überprüft, welche Tasten gedrückt wurden und führt entsprechende Aktionen aus.
 def handle_keys():
-    global left_flipper_target_angle, right_flipper_target_angle, left_flipper_active, right_flipper_active, left_flipper_color, right_flipper_color, ball_pos, ball_vel, GAME_STARTED, score
+    global game_freeze, left_flipper_target_angle, right_flipper_target_angle, left_flipper_active, right_flipper_active, left_flipper_color, right_flipper_color, ball_pos, ball_vel, GAME_STARTED, score
     
     # Überprüft den Status aller Tasten
     keys = pygame.key.get_pressed()
@@ -946,6 +970,10 @@ def handle_keys():
         ball_vel = [0, 0]
         GAME_STARTED = False
         score = 0
+
+    # Spiel einfrieren (Freeze-Funktion)
+    if keys[pygame.K_f]:
+        game_freeze = not game_freeze
 
 
 dragging_ball = False
@@ -1495,7 +1523,7 @@ black_hole_particles = []
 
 # Hauptspiel-Schleife, die alle anderen Funktionen aufruft und das Spiel steuert
 def game_loop():
-    global INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE, is_pause_menu_open, pause_panel, pregame_label, ball_pos, ball_vel, prev_ball_pos, score, black_hole_particles, teleporting, teleport_start_time
+    global game_freeze, INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE, is_pause_menu_open, pause_panel, pregame_label, ball_pos, ball_vel, prev_ball_pos, score, black_hole_particles, teleporting, teleport_start_time
 
     while True:
         for event in pygame.event.get():
@@ -1503,6 +1531,12 @@ def game_loop():
                 save_high_score()
                 pygame.quit()
                 sys.exit()
+            
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_f:
+                    game_freeze = not game_freeze
 
             handle_buttons(event)
             
@@ -1539,41 +1573,24 @@ def game_loop():
         # Blit the background image
         window.blit(background_image, (GAME_WIDTH, 0))
 
+        handle_keys()
 
         if not is_pause_menu_open:
-            prev_ball_pos = ball_pos.copy()
-
-            move_ball()
-            draw_scoring_lines()
-            handle_keys()      
             draw_flipper(left_flipper_pos, left_flipper_angle, False, left_flipper_color)
             draw_flipper(right_flipper_pos, right_flipper_angle, True, right_flipper_color)
             draw_bumpers()
-            draw_ramps() 
+            draw_scoring_lines()
+            draw_ramps()
             draw_gui()
-            check_collision()  
             draw_particles()
             update_particles()
-            update_flippers()
             draw_separator()
-            check_hole_collision(ball_pos, ball_vel)
             draw_holes()
-            check_scoring_lines(ball_pos, prev_ball_pos)
-            black_hole_particles = generate_black_hole_particles(black_hole_pos, black_hole_particles)
-            black_hole_particles = update_black_hole_particles(black_hole_particles, black_hole_pos)
             draw_black_hole_particles(window, black_hole_particles)
             update_high_score()
 
-            # Teleport-Delay von 500ms implementieren
-            if teleporting:
-                current_time = pygame.time.get_ticks()
-                if current_time - teleport_start_time >= 500:
-                    ball_pos[0], ball_pos[1] = exit_hole_pos
-                    ball_vel = [random.uniform(-2 * METER, 2 * METER), 1 * METER]
-                    teleporting = False
-            else:
+            if not teleporting:
                 draw_ball()
-
 
             # Überprüft ob die Kugel den unteren Spielfeldrand berührt und triggert dann den End-Game-Screen
             if ball_pos[1] >= HEIGHT - BALL_RADIUS:
@@ -1586,6 +1603,25 @@ def game_loop():
                     reset_score()
                     set_gui_visibility(True)
                     continue
+
+        if not game_freeze and not is_pause_menu_open:
+            prev_ball_pos = ball_pos.copy()
+            
+            move_ball()
+            check_collision()
+            update_flippers()
+            check_hole_collision(ball_pos, ball_vel)
+            check_scoring_lines(ball_pos, prev_ball_pos)
+            black_hole_particles = generate_black_hole_particles(black_hole_pos, black_hole_particles)
+            black_hole_particles = update_black_hole_particles(black_hole_particles, black_hole_pos)
+
+            # Teleport-Delay von 500ms implementieren
+            if teleporting:
+                current_time = pygame.time.get_ticks()
+                if current_time - teleport_start_time >= 500:
+                    ball_pos[0], ball_pos[1] = exit_hole_pos
+                    ball_vel = [random.uniform(-2 * METER, 2 * METER), 1 * METER]
+                    teleporting = False
 
         manager.draw_ui(window)
 
