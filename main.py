@@ -38,7 +38,7 @@ manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'data/theme.json')
 
 # Hintergrundmusik laden und abspielen
 pygame.mixer.music.load('data/pinbolchill.mp3')
-pygame.mixer.music.set_volume(.05)
+pygame.mixer.music.set_volume(.0)
 pygame.mixer.music.play(-1) 
 
 
@@ -76,13 +76,14 @@ def set_gui_visibility(visible):
     pause_button.visible = visible
     reset_button.visible = visible
     score_value.visible = visible
+    high_score_value.visible = visible
 
 # Positionierung der Rampen
-ramp_left_start = (55, HEIGHT - 240)
+ramp_left_start = (58, HEIGHT - 240)
 ramp_left_end = (ramp_left_start[0] + RAMP_LENGTH * math.cos(math.radians(RAMP_ANGLE)),
                  ramp_left_start[1] - RAMP_LENGTH * math.sin(math.radians(RAMP_ANGLE)))
 
-ramp_right_start = (GAME_WIDTH - 55, HEIGHT - 240)
+ramp_right_start = (GAME_WIDTH - 58, HEIGHT - 240)
 ramp_right_end = (ramp_right_start[0] - RAMP_LENGTH * math.cos(math.radians(RAMP_ANGLE)),
                   ramp_right_start[1] - RAMP_LENGTH * math.sin(math.radians(RAMP_ANGLE)))
 
@@ -136,6 +137,8 @@ def update_high_score():
         high_score = score
         save_high_score()
 
+
+
 ###
 ### Bumpers
 ###
@@ -177,8 +180,8 @@ bumpers = [
     {'type': 'increase', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [200, 140], 'radius': BUMPER_RADIUS * 1, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'score': TIER_2, 'show_score': True},
     
     # Dreieckige Bumper Unten
-    {'type': 'triangle', 'shape': BUMPER_TYPE_TRIANGLE, 'points': calculate_triangle_points(154, HEIGHT - 175, TRIANGLE_BUMPER_BASE, TRIANGLE_BUMPER_HEIGHT, FLIPPER_ANGLE, is_right=False), 'color': BUMPER_COLOR_TRIANGLE, 'active': False, 'timer': 0, 'score': TIER_4, 'show_score': False},
-    {'type': 'triangle', 'shape': BUMPER_TYPE_TRIANGLE, 'points': calculate_triangle_points(GAME_WIDTH - 154, HEIGHT - 175, TRIANGLE_BUMPER_BASE, TRIANGLE_BUMPER_HEIGHT, FLIPPER_ANGLE, is_right=True), 'color': BUMPER_COLOR_TRIANGLE, 'active': False, 'timer': 0, 'score': TIER_4, 'show_score': False},
+    {'type': 'triangle', 'shape': BUMPER_TYPE_TRIANGLE, 'points': calculate_triangle_points(150, HEIGHT - 200, TRIANGLE_BUMPER_BASE, TRIANGLE_BUMPER_HEIGHT, FLIPPER_ANGLE, is_right=False), 'color': BUMPER_COLOR_TRIANGLE, 'active': False, 'timer': 0, 'score': TIER_4, 'show_score': False},
+    {'type': 'triangle', 'shape': BUMPER_TYPE_TRIANGLE, 'points': calculate_triangle_points(GAME_WIDTH - 146, HEIGHT - 202, TRIANGLE_BUMPER_BASE, TRIANGLE_BUMPER_HEIGHT, FLIPPER_ANGLE, is_right=True), 'color': BUMPER_COLOR_TRIANGLE, 'active': False, 'timer': 0, 'score': TIER_4, 'show_score': False},
 ]
 
 
@@ -189,11 +192,12 @@ bumpers = [
 
 # Klasse für die Rampen im Spielfeld
 class Ramp:
-    def __init__(self, start_pos, angle, length):
+    def __init__(self, start_pos, angle, length, width=RAMP_WIDTH):
         # Initialisiert eine Rampe mit Startposition, Winkel und Länge
         self.start_pos = start_pos
         self.angle = angle
         self.length = length
+        self.width = width
         # Berechnet die Endposition der Rampe basierend auf dem Winkel und der Länge
         self.end_pos = (
             start_pos[0] + length * math.cos(math.radians(angle)),
@@ -202,42 +206,45 @@ class Ramp:
 
     def draw(self, window, color=WHITE):
         # Zeichnet die Rampe als Linie
-        pygame.draw.line(window, color, self.start_pos, self.end_pos, FLIPPER_WIDTH)
+        pygame.draw.line(window, color, self.start_pos, self.end_pos, self.width)
     
     # Überprüft die Kollision der Kugel mit der Rampe
     def check_collision(self, ball_pos, ball_vel):
         if point_line_distance(ball_pos, self.start_pos, self.end_pos) <= BALL_RADIUS:
             reflect_ball(self.start_pos, self.end_pos)
 
-small_walls = FLIPPER_WIDTH + 10
+
+ball_radius_ramps = BALL_RADIUS * 2 + 2
 
 # Initialisierung der Rampen im Spielfeld
 ramps = [
     # Flipper Rampen
-    Ramp(ramp_left_end, left_ramp_angle, RAMP_LENGTH),
-    Ramp(ramp_right_end, right_ramp_angle, RAMP_LENGTH),
+    Ramp(ramp_left_end, left_ramp_angle, RAMP_LENGTH, 6),
+    Ramp(ramp_right_end, right_ramp_angle, RAMP_LENGTH, 6),
 
     # Spielfeld Rampen
     # Schräge Rampen unter den dreieckigen Bumpern innen
-    Ramp((154, 628), left_ramp_angle, 85),
-    Ramp((GAME_WIDTH - 154, 628), right_ramp_angle, 85),
+    Ramp((150, 609), left_ramp_angle, 80),
+    Ramp((GAME_WIDTH - 150, 609), right_ramp_angle, 80),
 
     # Äußere Wände
-    Ramp((81, 585), 90, 350),
-    Ramp((GAME_WIDTH - 81, 585), 90, 100),
+    Ramp((80, 570), 90, 335),
+    Ramp((GAME_WIDTH - 80, 570), 90, 100),
 
     # Schräge Rampen unter den dreieckigen Bumpern außen
-    Ramp((154, 640), left_ramp_angle, 98),
-    Ramp((GAME_WIDTH - 154, 640), right_ramp_angle, 98),
+    Ramp((150, 639), left_ramp_angle, 92),
+    Ramp((GAME_WIDTH - 150, 639), right_ramp_angle, 94),
 
     # Innere Wände
-    Ramp((70, 590), 90, 355),
-    Ramp((GAME_WIDTH - 70, 590), 90, 105),
+    Ramp((70, 592), 90, 380),
+    Ramp((GAME_WIDTH - 70, 592), 90, 105),
+    
+    Ramp((70, 210), right_ramp_angle, 57),
+    Ramp((80, 235), right_ramp_angle, 45),
+    Ramp((118, 213), 90, ball_radius_ramps),
 
-    Ramp((GAME_WIDTH - 68, 322), 180, small_walls),
-    Ramp((68, 237), 0, small_walls),
-    Ramp((GAME_WIDTH - 152, 640), 90, small_walls),
-    Ramp((152, 640), 90, small_walls),
+    Ramp((GAME_WIDTH - 150, 640), 90, ball_radius_ramps),
+    Ramp((150, 640), 90, ball_radius_ramps),
 
     # weitere Wände werden im weiteren Verlauf mit Ramps.append() hinzugefügt
 ]
@@ -293,7 +300,7 @@ def draw_particles():
 ###
 
 # Reflektiert die Geschwindigkeit der Kugel bei Kollision mit einem Bumper
-def reflect_ball_velocity(ball_pos, ball_vel, bumper):
+def reflect_ball_bumper(ball_pos, ball_vel, bumper):
     global ball_angular_vel, score
 
     if bumper['shape'] == BUMPER_TYPE_TRIANGLE:
@@ -457,7 +464,7 @@ def reflect(velocity, normal, is_flipper=False):
 
 # Bewegt die Kugel und aktualisiert ihre Position und Geschwindigkeit
 def move_ball():
-    global GRAVITY, INITIAL_BALL_IMPULSE, BUMPER_BOUNCE, ball_angle, ball_angular_vel, ball_vel, ball_pos, ball_in_black_hole
+    global GRAVITY, INITIAL_BALL_IMPULSE, ball_angle, ball_angular_vel, ball_vel, ball_pos, ball_in_black_hole
 
     if not GAME_STARTED:
         return
@@ -600,24 +607,23 @@ def check_collision():
             reflect_ball(flipper_start, flipper_end, is_flipper=True, flipper_angular_velocity=flipper_angular_velocity, flipper_moving=flipper_moving)
             break
 
-    # Überprüft Kollisionen mit den Spielfeldgrenzen
-    if ball_pos[0] <= BALL_RADIUS or ball_pos[0] >= GAME_WIDTH - BALL_RADIUS:
-        ball_vel[0] = -ball_vel[0] * COEFFICIENT_OF_RESTITUTION  # Reflect and reduce velocity based on COR
-        ball_pos[0] = max(min(ball_pos[0], GAME_WIDTH - BALL_RADIUS), BALL_RADIUS)
-
-    if ball_pos[1] <= BALL_RADIUS or ball_pos[1] >= HEIGHT - BALL_RADIUS:
-        ball_vel[1] = -ball_vel[1] * COEFFICIENT_OF_RESTITUTION  # Reflect and reduce velocity based on COR
-        ball_pos[1] = max(min(ball_pos[1], HEIGHT - BALL_RADIUS), BALL_RADIUS)
-
-        
-# Überprüft Kollisionen der Kugel mit Rampen/Wänden
-def check_ramp_collision():
-    global ball_pos, ball_vel
-
-    # Durchläuft alle Rampen im Spiel
+    # Überprüft Kollisionen mit Rampen/Wänden
     for ramp in ramps:
         ramp.check_collision(ball_pos, ball_vel)
-        
+
+    # Überprüft Kollisionen mit den Spielfeldgrenzen
+    if ball_pos[0] <= BALL_RADIUS or ball_pos[0] >= GAME_WIDTH - BALL_RADIUS:
+        ball_vel[0] = -ball_vel[0] * COEFFICIENT_OF_RESTITUTION
+        ball_pos[0] = max(min(ball_pos[0], GAME_WIDTH - BALL_RADIUS), BALL_RADIUS)
+
+    if ball_pos[1] <= BALL_RADIUS:
+        ball_vel[1] = -ball_vel[1] * COEFFICIENT_OF_RESTITUTION
+        ball_pos[1] = BALL_RADIUS
+
+    if ball_pos[1] >= HEIGHT - BALL_RADIUS:
+        ball_vel[1] = -ball_vel[1] * COEFFICIENT_OF_RESTITUTION
+        ball_pos[1] = HEIGHT - BALL_RADIUS
+
 
 # Überprüft Kollision der Kugel mit Bumpern
 def check_bumper_collision(ball_pos, ball_vel):
@@ -631,7 +637,7 @@ def check_bumper_collision(ball_pos, ball_vel):
                     bumper['active'] = True
                     bumper['timer'] = 10
                 # Reflektiert die Kugelgeschwindigkeit bei Kollision mit dem Bumper
-                reflect_ball_velocity(ball_pos, ball_vel, bumper)
+                reflect_ball_bumper(ball_pos, ball_vel, bumper)
 
         # Überprüft Kollisionen mit dreieckigen Bumpern
         elif bumper['shape'] == BUMPER_TYPE_TRIANGLE:
@@ -764,7 +770,7 @@ def draw_triangle_bumper(window, bumper):
     if bumper['active']:
         scale_factor = BUMPER_TRIANGULAR_SCALE
     else:
-        scale_factor = 1
+        scale_factor = .8
 
     # Berechnet den Schwerpunkt des Dreiecks
     centroid_x = sum(point[0] for point in bumper['points']) / 3
@@ -966,7 +972,6 @@ def handle_mouse():
             dragging_ball = False
 
 
-
 # Event Handler for Buttons
 def handle_buttons(event):
     global GAME_STARTED, ball_pos, ball_vel, is_pause_menu_open, pause_panel
@@ -1077,7 +1082,7 @@ position_value = UITextBox(
 
 speed_value = UITextBox(
     relative_rect=pygame.Rect((GAME_WIDTH + 184, 216), (102, 40)),
-    html_text="0.00",
+    html_text="0.0",
     manager=manager,
     object_id=ObjectID(class_id='@text_box', object_id='#speed_value')
 )
@@ -1119,7 +1124,7 @@ gravity_strength_slider = UIHorizontalSlider(
 # Beschriftung für den Abschusswinkel-Slider
 launch_angle_label = UILabel(
     relative_rect=pygame.Rect((GAME_WIDTH + 41, 504), (SLIDER_WIDTH - 8, 30)),
-    text=f"Launch Angle: {BALL_ANGLE:.1f} deg",
+    text=f"Launch Angle: {BALL_ANGLE} deg",
     manager=manager,
     object_id=ObjectID(class_id='@label', object_id='#la_label')
 )
@@ -1132,6 +1137,7 @@ launch_angle_slider = UIHorizontalSlider(
     manager=manager,
     object_id=ObjectID(class_id='@horizontal_slider', object_id='#la_slider')
 )
+
 
 # Play Button
 play_button = UIButton(
@@ -1241,7 +1247,7 @@ def pause_menu():
 
     # Fügt den "Fortsetzen"-Button hinzu
     continue_button = UIButton(
-        relative_rect=pygame.Rect((WIDTH / 2 - 220, HEIGHT - 80), (200, 60)),
+        relative_rect=pygame.Rect((WIDTH / 2 - 200, HEIGHT - 80), (200, 60)),
         text="Continue",
         manager=manager,
         container=pause_panel,
@@ -1250,11 +1256,11 @@ def pause_menu():
 
     # Fügt den "Beenden"-Button hinzu
     quit_button = UIButton(
-        relative_rect=pygame.Rect((WIDTH / 2 + 20, HEIGHT - 80), (200, 60)),
+        relative_rect=pygame.Rect((WIDTH / 2 + 20, HEIGHT - 73), (140, 46)),
         text="Quit",
         manager=manager,
         container=pause_panel,
-        object_id=ObjectID(class_id='', object_id='#pause_button')
+        object_id=ObjectID(class_id='', object_id='#quit_button')
     )
 
     # Aktiviert das Menü
@@ -1311,25 +1317,25 @@ def pause_menu():
 
 # Definitionen der Scoring Lines
 scoring_lines = [
-    {'start': (GAME_WIDTH - 160, 340), 'end': (GAME_WIDTH - 80, 340), 'idle_color': LIGHT_GREY, 'flash_color': BUMPER_COLOUR_TIER_1, 'score': 400},
-    {'start': (GAME_WIDTH - 160, 360), 'end': (GAME_WIDTH - 80, 360), 'idle_color': LIGHT_GREY, 'flash_color': BUMPER_COLOUR_TIER_2, 'score': 300},
-    {'start': (GAME_WIDTH - 160, 380), 'end': (GAME_WIDTH - 80, 380), 'idle_color': LIGHT_GREY, 'flash_color': BUMPER_COLOUR_TIER_3, 'score': 200},
-    {'start': (GAME_WIDTH - 160, 400), 'end': (GAME_WIDTH - 80, 400), 'idle_color': LIGHT_GREY, 'flash_color': BUMPER_COLOR_TRIANGLE, 'score': 100},
+    {'start': (GAME_WIDTH - 150, 325), 'end': (GAME_WIDTH - 80, 325), 'idle_color': LIGHT_GREY, 'flash_color': BUMPER_COLOUR_TIER_1, 'score': 400},
+    {'start': (GAME_WIDTH - 150, 345), 'end': (GAME_WIDTH - 80, 345), 'idle_color': LIGHT_GREY, 'flash_color': BUMPER_COLOUR_TIER_2, 'score': 300},
+    {'start': (GAME_WIDTH - 150, 365), 'end': (GAME_WIDTH - 80, 365), 'idle_color': LIGHT_GREY, 'flash_color': BUMPER_COLOUR_TIER_3, 'score': 200},
+    {'start': (GAME_WIDTH - 150, 385), 'end': (GAME_WIDTH - 80, 385), 'idle_color': LIGHT_GREY, 'flash_color': BUMPER_COLOR_TRIANGLE, 'score': 100},
 ]
 
 # Positionen der Wände
-wall_left_start = (GAME_WIDTH - 160, 420)
-wall_right_start = (GAME_WIDTH - 81, 520)
+wall_left_start = (GAME_WIDTH - 150, 410)
+wall_right_start = (GAME_WIDTH - 80, 510)
 
-ramps.append(Ramp(wall_left_start, 90, 100))
-ramps.append(Ramp(wall_right_start, 90, 200))
 
-ramps.append(Ramp((wall_left_start[0] - 10, wall_left_start[1]), 90, 100))
-ramps.append(Ramp((wall_right_start[0] + 11, wall_right_start[1]), 90, 200))
+ramps.append(Ramp(wall_right_start, 90, 275))
+ramps.append(Ramp((wall_right_start[0] + 10, wall_right_start[1]), 90, 283))
 
-# Deckel
-ramps.append(Ramp((GAME_WIDTH - 160, 322), 180, 10))
-ramps.append(Ramp((GAME_WIDTH - 160, 418), 180, 10))
+# Walls Innen
+ramps.append(Ramp(wall_left_start, 90, 120))
+ramps.append(Ramp((wall_left_start[0] - ball_radius_ramps, wall_left_start[1] + 14), 90, 142))
+ramps.append(Ramp((GAME_WIDTH - 150, 290), 165, ball_radius_ramps))
+ramps.append(Ramp((GAME_WIDTH - 150, 410), 205, ball_radius_ramps))
 
 crossed_lines = {i: {'crossed': False, 'last_flash_time': 0} for i in range(len(scoring_lines))}
 
@@ -1467,17 +1473,16 @@ bumpers.append({'type': 'teleport', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [GAME_WI
 bumpers.append({'type': 'teleport', 'shape': BUMPER_TYPE_CIRCLE, 'pos': [GAME_WIDTH - 80, 160], 'radius': BUMPER_RADIUS / 1.75, 'color': BUMPER_COLOUR_TIER_2, 'active': False, 'timer': 0, 'score': TIER_2, 'show_score': False, 'max_velocity': MAX_BUMPER_SPEED})
 
 # Wände am Out-Loch
-ramps.append(Ramp((GAME_WIDTH - 160, 200), 90, 200))
-ramps.append(Ramp((GAME_WIDTH - 170, 208), 90, 208))
-ramps.append(Ramp((GAME_WIDTH - 160, 200), -15, 100))
-ramps.append(Ramp((GAME_WIDTH - 170, 208), -15, 110))
-ramps.append(Ramp((GAME_WIDTH - 66, 238), 90, small_walls))
+ramps.append(Ramp((GAME_WIDTH - 162, 202), 90, 202))
+ramps.append(Ramp((GAME_WIDTH - 172, 212), 90, 212))
+ramps.append(Ramp((GAME_WIDTH - 162, 203), -15, 96))
+ramps.append(Ramp((GAME_WIDTH - 172, 210), -15, 96))
 
 # Wände am In-Loch
-ramps.append(Ramp((150, 405), 90, 120))
-ramps.append(Ramp((161, 405), 90, 120))
-ramps.append(Ramp((163, 287), 180, small_walls))
-ramps.append(Ramp((163, 403), 180, small_walls))
+ramps.append(Ramp((145, 406), 90, 120))
+ramps.append(Ramp((145 + ball_radius_ramps, 420), 90, 142))
+ramps.append(Ramp((145 + ball_radius_ramps, 276), -165, ball_radius_ramps))
+ramps.append(Ramp((145 + ball_radius_ramps, 420), -205, ball_radius_ramps))
 
 # Particle Initialisierung
 black_hole_particles = []
@@ -1540,14 +1545,13 @@ def game_loop():
 
             move_ball()
             draw_scoring_lines()
-            handle_keys()
-            check_collision()
-            check_ramp_collision()
+            handle_keys()      
             draw_flipper(left_flipper_pos, left_flipper_angle, False, left_flipper_color)
             draw_flipper(right_flipper_pos, right_flipper_angle, True, right_flipper_color)
             draw_bumpers()
             draw_ramps() 
             draw_gui()
+            check_collision()  
             draw_particles()
             update_particles()
             update_flippers()

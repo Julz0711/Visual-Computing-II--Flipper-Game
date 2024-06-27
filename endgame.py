@@ -8,7 +8,7 @@ from pygame_gui.core import ObjectID
 
 gameover_image = pygame.image.load('data/gameover_bg.png')
 
-def end_game_screen(manager, window, clock, set_gui_visibility, high_score):
+def end_game_screen(manager, window, clock, set_gui_visibility, score):
     padding = 48
     set_gui_visibility(False)
 
@@ -24,7 +24,7 @@ def end_game_screen(manager, window, clock, set_gui_visibility, high_score):
     # Final score
     final_score_label = UILabel(
         relative_rect=pygame.Rect(((window.get_width() / 2) - (WIDTH / 2), window.get_height() - 290), (WIDTH, 150)),
-        text=f"{high_score}",
+        text=f"{score}",
         manager=manager,
         container=endgame_panel,
         object_id=ObjectID(class_id='@label', object_id='#final_score_label')
