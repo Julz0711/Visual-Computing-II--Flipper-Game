@@ -727,7 +727,7 @@ def draw_ball():
     if teleporting == False:
         pygame.draw.circle(window, pygame.Color(ball_color.lower()), (int(ball_pos[0]), int(ball_pos[1])), BALL_RADIUS)
 
-        if draw_ball_direction_line == 'on':
+        if draw_ball_direction_line:
             # Zeichnet eine Linie, die die Richtung der Kugelgeschwindigkeit anzeigt
             direction_length = 30 * math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
             angle = math.atan2(ball_vel[1], ball_vel[0])
