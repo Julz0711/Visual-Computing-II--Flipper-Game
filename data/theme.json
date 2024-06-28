@@ -43,10 +43,10 @@
   },
   "#volume_slider": {
     "colours": {
-      "dark_bg": "#121212",
-      "normal_bg": "#121212",
-      "normal_border": "#c3c3c3",
-      "dark_border": "#c3c3c3"
+      "dark_bg": "#292929",
+      "normal_bg": "#292929",
+      "normal_border": "#f8f8f8",
+      "dark_border": "#f8f8f8"
     },
     "misc": {
       "border_width": 1,
@@ -55,7 +55,7 @@
   },
   "#volume_slider.#sliding_button": {
     "colours": {
-      "normal_bg": "#c3c3c3"
+      "normal_bg": "#f8f8f8"
     },
     "misc": {
       "border_width": 0,
@@ -262,8 +262,8 @@
   },
   "#volume_value": {
     "colours": {
-      "normal_bg": "#c3c3c3",
-      "hovered_bg": "#c3c3c3",
+      "normal_bg": "#f8f8f8",
+      "hovered_bg": "#f8f8f8",
       "normal_text": "#121212",
       "hovered_text": "#121212"
     },
@@ -398,21 +398,34 @@
     "colours": {
       "normal_bg": "#121212",
       "dark_bg": "#121212",
-      "normal_border": "#121212",
+      "normal_border": "#f8f8f8",
       "hovered_bg": "#b6b6b6"
     },
     "misc": {
       "expand_direction": "down",
-      "border_width": "0",
-      "open_button_width": "48"
+      "border_width": "1",
+      "open_button_width": "32"
     }
   },
-  "#baal_dropdown.#drop_down_options_list": {
+  "#ball_dropdown.#drop_down_options_list": {
     "colours": {
-      "dark_bg": "#121212",
-      "normal_bg": "#121212",
-      "normal_border": "#121212",
-      "hovered_bg": "#202020"
+      "normal_border": "#292929",
+      "hovered_border": "#292929",
+      "disabled_border": "#292929",
+      "selected_border": "#292929",
+      "active_border": "#292929"
+    },
+    "misc": {
+      "border_width": "1"
+    }
+  },
+  "#ball_dropdown.#expand_button": {
+    "colours": {
+      "dark_bg": "#292929",
+      "normal_bg": "#292929",
+      "hovered_bg": "#202020",
+      "normal_text": "#FFFFFF",
+      "hovered_text": "#FFFFFF"
     },
     "misc": {
       "border_width": "0"
@@ -420,7 +433,8 @@
   },
   "#ball_dropdown.#selected_option": {
     "colours": {
-      "normal_bg": "#121212",
+      "normal_bg": "#292929",
+      "dark_bg": "#292929",
       "hovered_bg": "#202020",
       "normal_text": "#FFFFFF",
       "hovered_text": "#FFFFFF"

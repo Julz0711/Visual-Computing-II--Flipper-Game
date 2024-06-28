@@ -468,19 +468,6 @@ def reflect_ball(start, end, is_flipper=False, flipper_angular_velocity=0, flipp
         ball_pos = [ball_pos[0] + normal[0] * 0.1, ball_pos[1] + normal[1] * 0.1]
 
 
-# Reflektiert eine gegebene Geschwindigkeit an einer Fläche mit gegebenem Normalenvektor
-def reflect(velocity, normal, is_flipper=False):
-    # Berechnet das Skalarprodukt der Geschwindigkeit und des Normalenvektors
-    dot_product = velocity[0] * normal[0] + velocity[1] * normal[1]
-    
-    # Berechnet den reflektierten Geschwindigkeitsvektor
-    reflected_velocity = (
-        (velocity[0] - 2 * dot_product * normal[0]) * (COEFFICIENT_OF_RESTITUTION if not is_flipper else 1),
-        (velocity[1] - 2 * dot_product * normal[1]) * (COEFFICIENT_OF_RESTITUTION if not is_flipper else 1)
-    )
-    return reflected_velocity
-
-
 
 ###
 ### move ball ###
@@ -545,53 +532,10 @@ def limit_velocity(ball_vel, max_velocity):
 ### Kollisionen ###
 ###
 
-# Überprüft, ob die Kugel auf dem Flipper ist, indem der Abstand zum Flipper berechnet wird
-def is_ball_on_flipper(ball_pos, flipper_start, flipper_end):
-    # Überprüft, ob die Kugel auf dem Flipper ist, indem der Punkt-Linien-Abstand berechnet wird
-    return point_line_distance(ball_pos, flipper_start, flipper_end) <= BALL_RADIUS
-    
-
-# Wendet die Physik des Rollens der Kugel auf dem Flipper an
-def apply_flipper_physics(ball_pos, ball_vel, flipper_start, flipper_end):
-    # Berechnet den Winkel des Flippers
-    flipper_angle = math.atan2(flipper_end[1] - flipper_start[1], flipper_end[0] - flipper_start[0])
-    
-    # Berechnet die Schwerkraftkomponente, die parallel zum Flipper wirkt
-    gravity_parallel = GRAVITY * math.sin(flipper_angle)
-    
-    # Wendet die Schwerkraft parallel zum Flipperwinkel auf die Kugelgeschwindigkeit an
-    ball_vel[0] += gravity_parallel * dt * math.cos(flipper_angle)
-    ball_vel[1] += gravity_parallel * dt * math.sin(flipper_angle)
-
-    # Stellt sicher, dass die Kugel natürlich vom Flipper rollt
-    projected_pos = [ball_pos[0] + ball_vel[0] * dt, ball_pos[1] + ball_vel[1] * dt]
-    dist_to_flipper = point_line_distance(projected_pos, flipper_start, flipper_end)
-
-    # Wenn der Abstand zur Flipperlinie größer als der Kugelradius ist, korrigiert die Position der Kugel, um das Eindringen zu vermeiden
-    if dist_to_flipper > BALL_RADIUS:
-        normal = get_line_normal(flipper_start, flipper_end)
-        ball_pos[0] -= normal[0] * (dist_to_flipper - BALL_RADIUS)
-        ball_pos[1] -= normal[1] * (dist_to_flipper - BALL_RADIUS)
-
-
-# Berechnet den Normalenvektor einer Linie, die durch zwei Punkte definiert ist
-def get_line_normal(start, end):
-    # Berechnet die Differenzen der x- und y-Koordinaten zwischen dem Start- und Endpunkt der Linie
-    dx = end[0] - start[0]
-    dy = end[1] - start[1]
-
-    # Der Normalenvektor ist senkrecht zur Linie
-    normal = (-dy, dx)
-    length = math.sqrt(normal[0]**2 + normal[1]**2)
-
-    # Normierung des Vektors
-    return (normal[0] / length, normal[1] / length)
-
-
 def check_continuous_collision(ball_pos, ball_vel, flipper_start, flipper_end):
     # Berechnet die Anzahl der Schritte basierend auf der Geschwindigkeit der Kugel
     steps = int(math.hypot(ball_vel[0], ball_vel[1]) / BALL_RADIUS)
-    steps = max(steps, 1)  # Ensure at least one step
+    steps = max(steps, 1)
 
     for i in range(steps):
         # Berechnet die interpolierte Position der Kugel
@@ -698,6 +642,20 @@ def check_bumper_collision(ball_pos, ball_vel):
 ### Helper Funktionen
 ###
 
+# Berechnet den Normalenvektor einer Linie, die durch zwei Punkte definiert ist
+def get_line_normal(start, end):
+    # Berechnet die Differenzen der x- und y-Koordinaten zwischen dem Start- und Endpunkt der Linie
+    dx = end[0] - start[0]
+    dy = end[1] - start[1]
+
+    # Der Normalenvektor ist senkrecht zur Linie
+    normal = (-dy, dx)
+    length = math.sqrt(normal[0]**2 + normal[1]**2)
+
+    # Normierung des Vektors
+    return (normal[0] / length, normal[1] / length)
+
+
 # Berechnet den Abstand eines Punktes von einer Linie, definiert durch zwei Punkte
 def point_line_distance(point, start, end):
     px, py = point
@@ -760,6 +718,8 @@ def point_in_triangle(px, py, triangle_points):
 ### Draw Funktionen ###
 ###
 
+draw_ball_direction_line = 'on'
+
 # Zeichnet die Kugel an ihrer aktuellen Position auf dem Spielfeld
 def draw_ball():
     global teleporting
@@ -767,13 +727,15 @@ def draw_ball():
     if teleporting == False:
         pygame.draw.circle(window, pygame.Color(ball_color.lower()), (int(ball_pos[0]), int(ball_pos[1])), BALL_RADIUS)
 
-        # Zeichnet eine Linie, die die Richtung der Kugelgeschwindigkeit anzeigt
-        direction_length = 30 * math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
-        angle = math.atan2(ball_vel[1], ball_vel[0])
-        end_pos = (ball_pos[0] + direction_length * math.cos(angle), ball_pos[1] + direction_length * math.sin(angle))
-        pygame.draw.line(window, RED, (ball_pos[0], ball_pos[1]), end_pos, 2)
+        if draw_ball_direction_line == 'on':
+            # Zeichnet eine Linie, die die Richtung der Kugelgeschwindigkeit anzeigt
+            direction_length = 30 * math.sqrt(ball_vel[0]**2 + ball_vel[1]**2) / 100
+            angle = math.atan2(ball_vel[1], ball_vel[0])
+            end_pos = (ball_pos[0] + direction_length * math.cos(angle), ball_pos[1] + direction_length * math.sin(angle))
+            pygame.draw.line(window, RED, (ball_pos[0], ball_pos[1]), end_pos, 2)
+        else:
+            return
 
-    
 
 # Zeichnet den Flipper an der gegebenen Position und mit dem gegebenen Winkel
 def draw_flipper(position, angle, is_right, color):
@@ -1221,7 +1183,8 @@ def pause_menu():
 
     # Dropdown-Menü für die Farbauswahl der Kugel
     ball_preview_width = 48
-    dropdown_width = WIDTH - padding - padding - 64 - ball_preview_width
+    dropdown_width = WIDTH / 2 - padding - padding - 56 - ball_preview_width
+    volume_width = WIDTH - padding - padding - 64 - ball_preview_width
 
     dropdown = UIDropDownMenu(
         options_list=['White', 'Red', 'Green', 'Blue', 'Purple', 'Orange', 'Yellow'],
@@ -1246,7 +1209,7 @@ def pause_menu():
 
     # Vorschau der Kugel
     ball_preview_label = UILabel(
-        relative_rect=pygame.Rect(padding + dropdown_width + 32, 480, ball_preview_width, ball_preview_width),
+        relative_rect=pygame.Rect(padding + dropdown_width + padding, 480, ball_preview_width, ball_preview_width),
         text="",
         manager=manager,
         container=pause_panel,
@@ -1256,8 +1219,29 @@ def pause_menu():
     # Initiale runde Kugelvorschau zeichnen
     update_ball_preview(ball_color)
 
+    # Dropdown-Menü für die Anzeige der Ballgeschwindigkeitslinie
+    line_dropdown = UIDropDownMenu(
+        options_list=['On', 'Off'],
+        starting_option='On' if draw_ball_direction_line else 'Off',
+        relative_rect=pygame.Rect(WIDTH / 2 + padding + 24, 480, dropdown_width + padding, 50),
+        manager=manager,
+        container=pause_panel,
+        object_id=ObjectID(class_id='@dropdown', object_id='#ball_dropdown')
+    )
+
+    # Funktion zum Aktualisieren der Einstellung der Linienanzeige
+    def update_ball_line_display(option):
+        global draw_ball_direction_line
+        draw_ball_direction_line = (option == 'On')
+
+    # Event-Handler für Änderungen im Dropdown-Menü
+    def handle_line_dropdown_event(event):
+        if event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
+            if event.ui_element == line_dropdown:
+                update_ball_line_display(event.text.lower())
+
     volume_value_label = UILabel(
-        relative_rect=pygame.Rect(dropdown_width + padding + 32, 627, 50, SLIDER_HEIGHT + 12 - 4),
+        relative_rect=pygame.Rect(volume_width + padding + 32, 627, 50, SLIDER_HEIGHT + 12 - 4),
         text=str(int(pygame.mixer.music.get_volume() * 100)),
         manager=manager,
         container=pause_panel,
@@ -1265,7 +1249,7 @@ def pause_menu():
     )
 
     volume_slider = UIHorizontalSlider(
-        relative_rect=pygame.Rect(padding + 24, 625, dropdown_width, SLIDER_HEIGHT + 12),
+        relative_rect=pygame.Rect(padding + 24, 625, volume_width, SLIDER_HEIGHT + 12),
         start_value=pygame.mixer.music.get_volume() * 100,
         value_range=(0, 100),
         manager=manager,
@@ -1321,6 +1305,8 @@ def pause_menu():
             elif event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
                 if event.ui_element == dropdown:
                     update_ball_preview(event.text)
+                elif event.ui_element == line_dropdown:
+                    update_ball_line_display(event.text.lower())
             elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                 if event.ui_element == volume_slider:
                     volume = event.value / 100
