@@ -1173,13 +1173,11 @@ def pause_menu():
     pause_surface = pygame.Surface((WIDTH, HEIGHT))
     pause_surface.blit(pause_image, (0, 0))
 
-
     # Erstellt ein Panel, das das gesamte Fenster abdeckt
     pause_panel = UIPanel(
         relative_rect=pygame.Rect(0, 0, WIDTH, HEIGHT),
         manager=manager
     )
-
 
     # Dropdown-Menü für die Farbauswahl der Kugel
     ball_preview_width = 48
@@ -1306,7 +1304,7 @@ def pause_menu():
                 if event.ui_element == dropdown:
                     update_ball_preview(event.text)
                 elif event.ui_element == line_dropdown:
-                    update_ball_line_display(event.text.lower())
+                    update_ball_line_display(event.text)
             elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                 if event.ui_element == volume_slider:
                     volume = event.value / 100
