@@ -11,10 +11,13 @@ a = Analysis(
         ('data/gui_bg_v2.png', 'data'),
         ('data/pause_bg_v2.png', 'data'),
         ('data/pinbolchill.mp3', 'data'),
+        ('data/bumper.mp3', 'data'),
+        ('data/hit.wav', 'data'),
         ('data/PressStart2P-Regular.ttf', 'data'),
         ('data/theme.json', 'data'),
-        ('highscore.txt', '.'),  # Include highscore.txt in the root directory
-        ('icon.ico', '.')  # Include icon.ico in the root directory
+        ('highscore.txt', '.'),
+        ('icon.ico', '.'),
+        ('icon.png', '.')
     ],
     hiddenimports=[],
     hookspath=[],

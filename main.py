@@ -30,7 +30,8 @@ def resource_path(relative_path):
 
 config_file = resource_path('config.py')
 highscore_file = resource_path('highscore.txt')
-icon_file = resource_path('icon.ico')
+icon_ico_file = resource_path('icon.ico')
+icon_png_file = resource_path('icon.png')
 gameover_bg = pygame.image.load(resource_path('data/gameover_bg.png'))
 gui_bg = pygame.image.load(resource_path('data/gui_bg_v2.png'))
 pause_bg = pygame.image.load(resource_path('data/pause_bg_v2.png'))
@@ -48,6 +49,8 @@ theme_file = resource_path('data/theme.json')
 pygame.init()
 pygame.font.init()
 pygame.mixer.init()
+icon_image = pygame.image.load('icon.png')
+pygame.display.set_icon(icon_image)
 font = pygame.font.SysFont(None, 24)
 custom_font = pygame.font.Font('data/PressStart2P-Regular.ttf', 12)  
 clock = pygame.time.Clock()
@@ -62,8 +65,17 @@ manager = pygame_gui.UIManager((WIDTH, HEIGHT), 'data/theme.json')
 
 # Hintergrundmusik laden und abspielen
 pygame.mixer.music.load('data/pinbolchill.mp3')
-pygame.mixer.music.set_volume(.0)
+pygame.mixer.music.set_volume(.5)
 pygame.mixer.music.play(-1) 
+
+# Load sound effects
+sound_effect = pygame.mixer.Sound('data/hit.wav')
+sound_bumper = pygame.mixer.Sound('data/bumper.mp3')
+
+# Set volume if necessary
+sound_effect_volume = 0.3
+sound_effect.set_volume(sound_effect_volume)
+sound_bumper.set_volume(sound_effect_volume)
 
 
 # Initialisierung der Kugel mit Startposition und Geschwindigkeit
@@ -236,6 +248,7 @@ class Ramp:
     def check_collision(self, ball_pos, ball_vel):
         if point_line_distance(ball_pos, self.start_pos, self.end_pos) <= BALL_RADIUS:
             reflect_ball(self.start_pos, self.end_pos)
+            sound_effect.play()
 
 
 ball_radius_ramps = BALL_RADIUS * 2 + 2
@@ -367,6 +380,7 @@ def reflect_ball_bumper(ball_pos, ball_vel, bumper):
     # Geschwindigkeit der Kugel begrenzen
     limit_velocity(ball_vel, MAX_VELOCITY)
     bumper['timer'] = 10
+    sound_bumper.play()
 
 
 # Reflektiert die Kugelgeschwindigkeit bei Kollision mit einem dreieckigen Bumper
@@ -407,6 +421,7 @@ def reflect_ball_from_triangle(ball_pos, ball_vel, start, end):
 
     add_particles(ball_pos)
     score += 100
+    sound_bumper.play()
 
 
 # Berechnet den Abprall der Kugel
@@ -573,6 +588,7 @@ def check_collision():
         if collision:
             ball_pos = collision_pos  # Update ball position to the collision point
             reflect_ball(flipper_start, flipper_end, is_flipper=True, flipper_angular_velocity=flipper_angular_velocity, flipper_moving=flipper_moving)
+            sound_effect.play()
             break
 
     # Überprüft Kollisionen mit Rampen/Wänden
@@ -962,9 +978,14 @@ def handle_mouse():
             dragging_ball = False
 
 
+# Initial Values
+INITIAL_GRAVITY_STRENGTH = GRAVITY_STRENGTH
+INITIAL_BALL_ANGLE = BALL_ANGLE
+INITIAL_INITAL_BALL_IMPULSE = INITIAL_BALL_IMPULSE
+
 # Event Handler for Buttons
 def handle_buttons(event):
-    global GAME_STARTED, ball_pos, ball_vel, is_pause_menu_open, pause_panel
+    global GAME_STARTED, ball_pos, ball_vel, is_pause_menu_open, pause_panel, GRAVITY_STRENGTH, BALL_ANGLE, INITIAL_BALL_IMPULSE
 
     # Überprüft, ob die ESC-Taste gedrückt wurde
     if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -991,6 +1012,15 @@ def handle_buttons(event):
             ball_pos = [GAME_WIDTH // 2, BALL_START_Y]
             ball_vel = [0, 0]
             GAME_STARTED = False
+            # Reset sliders to initial values
+            initial_impulse_slider.set_current_value(INITIAL_GRAVITY_STRENGTH)
+            gravity_strength_slider.set_current_value(INITIAL_GRAVITY_STRENGTH)
+            launch_angle_slider.set_current_value(INITIAL_BALL_ANGLE)
+
+            # Update labels to reflect initial values
+            initial_impulse_label.set_text(f"Initial Speed: {INITIAL_INITAL_BALL_IMPULSE / METER:.1f} m/s")
+            gravity_strength_label.set_text(f"Gravity Strength: {INITIAL_GRAVITY_STRENGTH:.1f}")
+            launch_angle_label.set_text(f"Launch Angle: {INITIAL_BALL_ANGLE} deg")
         # Überprüft, ob der Play-Button gedrückt wurde
         elif event.ui_element == play_button:
             if ball_pos != [GAME_WIDTH // 2, BALL_START_Y]:  
@@ -1161,7 +1191,7 @@ reset_button = UIButton(
 
 # Zeigt ein Popup-Fenster mit den Spielsteuerungen an
 def pause_menu():
-    global is_pause_menu_open, pause_panel, continue_button, quit_button, volume_slider, volume_label, volume_value_label
+    global is_pause_menu_open, pause_panel, continue_button, quit_button, volume_slider, volume_value_label, volume
     is_pause_menu_open = True
 
     # Blendet die GUI-Elemente des Spiels aus
@@ -1309,6 +1339,8 @@ def pause_menu():
                 if event.ui_element == volume_slider:
                     volume = event.value / 100
                     pygame.mixer.music.set_volume(volume)
+                    sound_effect.set_volume(volume)
+                    sound_bumper.set_volume(volume)
                     volume_value_label.set_text(str(int(volume * 100)))
 
             manager.process_events(event)
@@ -1507,7 +1539,7 @@ black_hole_particles = []
 
 # Hauptspiel-Schleife, die alle anderen Funktionen aufruft und das Spiel steuert
 def game_loop():
-    global game_freeze, INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE, is_pause_menu_open, pause_panel, pregame_label, ball_pos, ball_vel, prev_ball_pos, score, black_hole_particles, teleporting, teleport_start_time
+    global game_freeze, current_volume, INITIAL_BALL_IMPULSE, GRAVITY_STRENGTH, GRAVITY, GAME_STARTED, BALL_ANGLE, is_pause_menu_open, pause_panel, pregame_label, ball_pos, ball_vel, prev_ball_pos, score, black_hole_particles, teleporting, teleport_start_time
 
     while True:
         for event in pygame.event.get():
